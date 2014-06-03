@@ -1,0 +1,4 @@
+build/
+examples/
+node_modules/
+tmp/

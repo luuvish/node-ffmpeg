@@ -1,0 +1,33 @@
+{
+  "name": "node-ffmpeg",
+  "version": "0.1.0",
+  "description": "FFmpeg node module c++ addon",
+  "main": "./lib/ffmpeg.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "preinstall": "python ./script/bootstrap.py",
+    "install": "node-gyp rebuild"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/luuvish/node-ffmpeg"
+  },
+  "author": "luuvish <luuvish@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/luuvish/node-ffmpeg/issues"
+  },
+  "homepage": "https://github.com/luuvish/node-ffmpeg",
+  "dependencies": {
+    "bindings": "^1.2.0",
+    "nan": "^1.1.2"
+  },
+  "gypfile": true,
+  "directories": {
+    "example": "examples"
+  },
+  "devDependencies": {},
+  "keywords": [
+    "ffmpeg"
+  ]
+}
