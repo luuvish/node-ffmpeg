@@ -213,9 +213,6 @@ void FFmpeg::AVFormatContextWrapper::Initialize(Handle<Object> target) {
   proto->SetAccessor(NanNew<String>("duration"), GetDuration);
 
   target->Set(NanNew<String>("AVFormatContext"), ctor->GetFunction());
-
-  av_register_all();
-  avformat_network_init();
 }
 
 NAN_METHOD(FFmpeg::AVFormatContextWrapper::New) {
