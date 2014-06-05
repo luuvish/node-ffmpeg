@@ -4,172 +4,6 @@ using namespace node;
 using namespace v8;
 
 
-Persistent<FunctionTemplate> FFmpeg::AVCodecWrapper::constructor;
-
-FFmpeg::AVCodecWrapper::AVCodecWrapper() : _this(nullptr) {}
-
-FFmpeg::AVCodecWrapper::~AVCodecWrapper() {}
-
-void FFmpeg::AVCodecWrapper::Initialize(Handle<Object> target) {
-  NanScope();
-
-  Local<FunctionTemplate> ctor = NanNew<FunctionTemplate>(New);
-  NanAssignPersistent(constructor, ctor);
-  ctor->InstanceTemplate()->SetInternalFieldCount(1);
-  ctor->SetClassName(NanNew<String>("AVCodec"));
-
-  Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
-  proto->SetAccessor(NanNew<String>("is_encoder"), GetIsEncoder);
-  proto->SetAccessor(NanNew<String>("is_decoder"), GetIsDecoder);
-  proto->SetAccessor(NanNew<String>("name"), GetName);
-  proto->SetAccessor(NanNew<String>("long_name"), GetLongName);
-  proto->SetAccessor(NanNew<String>("type"), GetType);
-  proto->SetAccessor(NanNew<String>("id"), GetId);
-  proto->SetAccessor(NanNew<String>("max_lowres"), GetMaxLowres);
-
-  target->Set(NanNew<String>("AVCodec"), ctor->GetFunction());
-  NODE_SET_METHOD(ctor->GetFunction(), "findDecoder", FindDecoder);
-  NODE_SET_METHOD(ctor->GetFunction(), "findEncoder", FindEncoder);
-  NODE_SET_METHOD(ctor->GetFunction(), "getType", GetMediaType);
-  NODE_SET_METHOD(ctor->GetFunction(), "getName", GetCodecName);
-}
-
-Handle<Value> FFmpeg::AVCodecWrapper::newInstance(AVCodec *codec)
-{
-  NanScope();
-  Local<Function> ctor = constructor->GetFunction();
-  Handle<Object> ret = ctor->NewInstance();
-  AVCodecWrapper *obj = ObjectWrap::Unwrap<AVCodecWrapper>(ret);
-  obj->_this = codec;
-  NanReturnValue(ret);
-}
-
-NAN_METHOD(FFmpeg::AVCodecWrapper::New) {
-  if (args.IsConstructCall()) {
-    NanScope();
-    AVCodecWrapper *obj = new AVCodecWrapper();
-    obj->Wrap(args.This());
-    NanReturnValue(args.This());
-  }
-  NanScope();
-  NanReturnValue(constructor->GetFunction()->NewInstance());
-}
-
-NAN_METHOD(FFmpeg::AVCodecWrapper::FindDecoder) {
-  NanScope();
-
-  if (!args[0]->IsNumber() && !args[0]->IsString())
-    return NanThrowTypeError("codec id or codec name required");
-
-  AVCodec *codec = nullptr;
-
-  if (args[0]->IsNumber()) {
-    enum AVCodecID codec_id = static_cast<enum AVCodecID>(args[0]->NumberValue());
-    codec = avcodec_find_decoder(codec_id);
-  }
-  if (args[0]->IsString()) {
-    const char *codec_name = *String::Utf8Value(args[0]);
-    codec = avcodec_find_decoder_by_name(codec_name);
-  }
-
-  if (codec)
-    NanReturnValue(newInstance(codec));
-  else
-    NanReturnNull();
-}
-
-NAN_METHOD(FFmpeg::AVCodecWrapper::FindEncoder) {
-  NanScope();
-
-  if (!args[0]->IsNumber() && !args[0]->IsString())
-    return NanThrowTypeError("codec id or codec name required");
-
-  AVCodec *codec = nullptr;
-
-  if (args[0]->IsNumber()) {
-    enum AVCodecID codec_id = static_cast<enum AVCodecID>(args[0]->Uint32Value());
-    codec = avcodec_find_encoder(codec_id);
-  }
-  if (args[0]->IsString()) {
-    const char *codec_name = *String::Utf8Value(args[0]);
-    codec = avcodec_find_encoder_by_name(codec_name);
-  }
-
-  if (codec)
-    NanReturnValue(newInstance(codec));
-  else
-    NanReturnNull();
-}
-
-NAN_METHOD(FFmpeg::AVCodecWrapper::GetMediaType) {
-  NanScope();
-  if (args[0]->IsNumber()) {
-    enum AVCodecID codec_id = static_cast<enum AVCodecID>(args[0]->Uint32Value());
-    enum AVMediaType type = avcodec_get_type(codec_id);
-    NanReturnValue(NanNew<Number>(type));
-  }
-  NanReturnUndefined();
-}
-
-NAN_METHOD(FFmpeg::AVCodecWrapper::GetCodecName) {
-  NanScope();
-  if (!args[0]->IsNumber())
-    return NanThrowTypeError("codec id required");
-  enum AVCodecID codec_id = static_cast<enum AVCodecID>(args[0]->NumberValue());
-  const char *name = avcodec_get_name(codec_id);
-  NanReturnValue(NanNew<String>(name));
-}
-
-NAN_GETTER(FFmpeg::AVCodecWrapper::GetIsEncoder) {
-  NanScope();
-  AVCodecWrapper *obj = ObjectWrap::Unwrap<AVCodecWrapper>(args.This());
-  int is_encoder = av_codec_is_encoder(obj->_this);
-  NanReturnValue(NanNew<Boolean>(is_encoder));
-}
-
-NAN_GETTER(FFmpeg::AVCodecWrapper::GetIsDecoder) {
-  NanScope();
-  AVCodecWrapper *obj = ObjectWrap::Unwrap<AVCodecWrapper>(args.This());
-  int is_decoder = av_codec_is_decoder(obj->_this);
-  NanReturnValue(NanNew<Boolean>(is_decoder));
-}
-
-NAN_GETTER(FFmpeg::AVCodecWrapper::GetName) {
-  NanScope();
-  AVCodecWrapper *obj = ObjectWrap::Unwrap<AVCodecWrapper>(args.This());
-  const char *name = obj->_this->name;
-  NanReturnValue(NanNew<String>(name));
-}
-
-NAN_GETTER(FFmpeg::AVCodecWrapper::GetLongName) {
-  NanScope();
-  AVCodecWrapper *obj = ObjectWrap::Unwrap<AVCodecWrapper>(args.This());
-  const char *long_name = obj->_this->long_name;
-  NanReturnValue(NanNew<String>(long_name));
-}
-
-NAN_GETTER(FFmpeg::AVCodecWrapper::GetType) {
-  NanScope();
-  AVCodecWrapper *obj = ObjectWrap::Unwrap<AVCodecWrapper>(args.This());
-  enum AVMediaType type = obj->_this->type;
-  NanReturnValue(NanNew<Number>(type));
-}
-
-NAN_GETTER(FFmpeg::AVCodecWrapper::GetId) {
-  NanScope();
-  AVCodecWrapper *obj = ObjectWrap::Unwrap<AVCodecWrapper>(args.This());
-  enum AVCodecID id = obj->_this->id;
-  NanReturnValue(NanNew<Number>(id));
-}
-
-NAN_GETTER(FFmpeg::AVCodecWrapper::GetMaxLowres) {
-  NanScope();
-  AVCodecWrapper *obj = ObjectWrap::Unwrap<AVCodecWrapper>(args.This());
-  uint8_t max_lowres = obj->_this->max_lowres;
-  NanReturnValue(NanNew<Number>(max_lowres));
-}
-
-
 Persistent<FunctionTemplate> FFmpeg::AVCodecContextWrapper::constructor;
 
 FFmpeg::AVCodecContextWrapper::AVCodecContextWrapper() : _this(nullptr) {}
@@ -203,6 +37,12 @@ void FFmpeg::AVCodecContextWrapper::Initialize(Handle<Object> target) {
   proto->SetAccessor(NanNew<String>("width"), GetWidth);
   proto->SetAccessor(NanNew<String>("height"), GetHeight);
   proto->SetAccessor(NanNew<String>("pix_fmt"), GetPixFmt);
+  proto->SetAccessor(NanNew<String>("sample_rate"), GetSampleRate);
+  proto->SetAccessor(NanNew<String>("channels"), GetChannels);
+  proto->SetAccessor(NanNew<String>("sample_fmt"), GetSampleFmt);
+  proto->SetAccessor(NanNew<String>("channel_layout"), GetChannelLayout);
+  proto->SetAccessor(NanNew<String>("workaround_bugs"), GetWorkaroundBugs, SetWorkaroundBugs);
+  proto->SetAccessor(NanNew<String>("error_concealment"), GetErrorConcealment, SetErrorConcealment);
   proto->SetAccessor(NanNew<String>("lowres"), GetLowres, SetLowres);
 
   target->Set(NanNew<String>("AVCodecContext"), ctor->GetFunction());
@@ -221,7 +61,7 @@ Handle<Value> FFmpeg::AVCodecContextWrapper::newInstance(AVCodecContext *ctx)
 NAN_METHOD(FFmpeg::AVCodecContextWrapper::New) {
   if (args.IsConstructCall()) {
     NanScope();
-    AVCodecContextWrapper *obj = new AVCodecContextWrapper();
+    AVCodecContextWrapper *obj = new AVCodecContextWrapper;
     obj->Wrap(args.This());
     NanReturnValue(args.This());
   }
@@ -403,6 +243,48 @@ NAN_GETTER(FFmpeg::AVCodecContextWrapper::GetPixFmt) {
   NanReturnValue(NanNew<Number>(pix_fmt));
 }
 
+NAN_GETTER(FFmpeg::AVCodecContextWrapper::GetSampleRate) {
+  NanScope();
+  AVCodecContextWrapper *obj = ObjectWrap::Unwrap<AVCodecContextWrapper>(args.This());
+  int sample_rate = obj->_this->sample_rate;
+  NanReturnValue(NanNew<Number>(sample_rate));
+}
+
+NAN_GETTER(FFmpeg::AVCodecContextWrapper::GetChannels) {
+  NanScope();
+  AVCodecContextWrapper *obj = ObjectWrap::Unwrap<AVCodecContextWrapper>(args.This());
+  int channels = obj->_this->channels;
+  NanReturnValue(NanNew<Number>(channels));
+}
+
+NAN_GETTER(FFmpeg::AVCodecContextWrapper::GetSampleFmt) {
+  NanScope();
+  AVCodecContextWrapper *obj = ObjectWrap::Unwrap<AVCodecContextWrapper>(args.This());
+  enum AVSampleFormat sample_fmt = obj->_this->sample_fmt;
+  NanReturnValue(NanNew<Number>(sample_fmt));
+}
+
+NAN_GETTER(FFmpeg::AVCodecContextWrapper::GetChannelLayout) {
+  NanScope();
+  AVCodecContextWrapper *obj = ObjectWrap::Unwrap<AVCodecContextWrapper>(args.This());
+  uint64_t channel_layout = obj->_this->channel_layout;
+  NanReturnValue(NanNew<Number>(channel_layout));
+}
+
+NAN_GETTER(FFmpeg::AVCodecContextWrapper::GetWorkaroundBugs) {
+  NanScope();
+  AVCodecContextWrapper *obj = ObjectWrap::Unwrap<AVCodecContextWrapper>(args.This());
+  int workaround_bugs = obj->_this->workaround_bugs;
+  NanReturnValue(NanNew<Number>(workaround_bugs));
+}
+
+NAN_GETTER(FFmpeg::AVCodecContextWrapper::GetErrorConcealment) {
+  NanScope();
+  AVCodecContextWrapper *obj = ObjectWrap::Unwrap<AVCodecContextWrapper>(args.This());
+  int error_concealment = obj->_this->error_concealment;
+  NanReturnValue(NanNew<Number>(error_concealment));
+}
+
 NAN_GETTER(FFmpeg::AVCodecContextWrapper::GetLowres) {
   NanScope();
   AVCodecContextWrapper *obj = ObjectWrap::Unwrap<AVCodecContextWrapper>(args.This());
@@ -410,8 +292,186 @@ NAN_GETTER(FFmpeg::AVCodecContextWrapper::GetLowres) {
   NanReturnValue(NanNew<Number>(lowres));
 }
 
+NAN_SETTER(FFmpeg::AVCodecContextWrapper::SetWorkaroundBugs) {
+  NanScope();
+  AVCodecContextWrapper *obj = ObjectWrap::Unwrap<AVCodecContextWrapper>(args.This());
+  obj->_this->workaround_bugs = value->NumberValue();
+}
+
+NAN_SETTER(FFmpeg::AVCodecContextWrapper::SetErrorConcealment) {
+  NanScope();
+  AVCodecContextWrapper *obj = ObjectWrap::Unwrap<AVCodecContextWrapper>(args.This());
+  obj->_this->error_concealment = value->NumberValue();
+}
+
 NAN_SETTER(FFmpeg::AVCodecContextWrapper::SetLowres) {
   NanScope();
   AVCodecContextWrapper *obj = ObjectWrap::Unwrap<AVCodecContextWrapper>(args.This());
   obj->_this->lowres = value->NumberValue();
+}
+
+
+Persistent<FunctionTemplate> FFmpeg::AVCodecWrapper::constructor;
+
+FFmpeg::AVCodecWrapper::AVCodecWrapper() : _this(nullptr) {}
+
+FFmpeg::AVCodecWrapper::~AVCodecWrapper() {}
+
+void FFmpeg::AVCodecWrapper::Initialize(Handle<Object> target) {
+  NanScope();
+
+  Local<FunctionTemplate> ctor = NanNew<FunctionTemplate>(New);
+  NanAssignPersistent(constructor, ctor);
+  ctor->InstanceTemplate()->SetInternalFieldCount(1);
+  ctor->SetClassName(NanNew<String>("AVCodec"));
+
+  Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
+  proto->SetAccessor(NanNew<String>("is_encoder"), GetIsEncoder);
+  proto->SetAccessor(NanNew<String>("is_decoder"), GetIsDecoder);
+  proto->SetAccessor(NanNew<String>("name"), GetName);
+  proto->SetAccessor(NanNew<String>("long_name"), GetLongName);
+  proto->SetAccessor(NanNew<String>("type"), GetType);
+  proto->SetAccessor(NanNew<String>("id"), GetId);
+  proto->SetAccessor(NanNew<String>("max_lowres"), GetMaxLowres);
+
+  target->Set(NanNew<String>("AVCodec"), ctor->GetFunction());
+  NODE_SET_METHOD(ctor->GetFunction(), "findDecoder", FindDecoder);
+  NODE_SET_METHOD(ctor->GetFunction(), "findEncoder", FindEncoder);
+  NODE_SET_METHOD(ctor->GetFunction(), "getType", GetMediaType);
+  NODE_SET_METHOD(ctor->GetFunction(), "getName", GetCodecName);
+}
+
+Handle<Value> FFmpeg::AVCodecWrapper::newInstance(AVCodec *codec)
+{
+  NanScope();
+  Local<Function> ctor = constructor->GetFunction();
+  Handle<Object> ret = ctor->NewInstance();
+  AVCodecWrapper *obj = ObjectWrap::Unwrap<AVCodecWrapper>(ret);
+  obj->_this = codec;
+  NanReturnValue(ret);
+}
+
+NAN_METHOD(FFmpeg::AVCodecWrapper::New) {
+  if (args.IsConstructCall()) {
+    NanScope();
+    AVCodecWrapper *obj = new AVCodecWrapper;
+    obj->Wrap(args.This());
+    NanReturnValue(args.This());
+  }
+  NanScope();
+  NanReturnValue(constructor->GetFunction()->NewInstance());
+}
+
+NAN_METHOD(FFmpeg::AVCodecWrapper::FindDecoder) {
+  NanScope();
+
+  if (!args[0]->IsNumber() && !args[0]->IsString())
+    return NanThrowTypeError("codec id or codec name required");
+
+  AVCodec *codec = nullptr;
+
+  if (args[0]->IsNumber()) {
+    enum AVCodecID codec_id = static_cast<enum AVCodecID>(args[0]->NumberValue());
+    codec = avcodec_find_decoder(codec_id);
+  }
+  if (args[0]->IsString()) {
+    const char *codec_name = *String::Utf8Value(args[0]);
+    codec = avcodec_find_decoder_by_name(codec_name);
+  }
+
+  if (codec)
+    NanReturnValue(newInstance(codec));
+  else
+    NanReturnNull();
+}
+
+NAN_METHOD(FFmpeg::AVCodecWrapper::FindEncoder) {
+  NanScope();
+
+  if (!args[0]->IsNumber() && !args[0]->IsString())
+    return NanThrowTypeError("codec id or codec name required");
+
+  AVCodec *codec = nullptr;
+
+  if (args[0]->IsNumber()) {
+    enum AVCodecID codec_id = static_cast<enum AVCodecID>(args[0]->Uint32Value());
+    codec = avcodec_find_encoder(codec_id);
+  }
+  if (args[0]->IsString()) {
+    const char *codec_name = *String::Utf8Value(args[0]);
+    codec = avcodec_find_encoder_by_name(codec_name);
+  }
+
+  if (codec)
+    NanReturnValue(newInstance(codec));
+  else
+    NanReturnNull();
+}
+
+NAN_METHOD(FFmpeg::AVCodecWrapper::GetMediaType) {
+  NanScope();
+  if (args[0]->IsNumber()) {
+    enum AVCodecID codec_id = static_cast<enum AVCodecID>(args[0]->Uint32Value());
+    enum AVMediaType type = avcodec_get_type(codec_id);
+    NanReturnValue(NanNew<Number>(type));
+  }
+  NanReturnUndefined();
+}
+
+NAN_METHOD(FFmpeg::AVCodecWrapper::GetCodecName) {
+  NanScope();
+  if (!args[0]->IsNumber())
+    return NanThrowTypeError("codec id required");
+  enum AVCodecID codec_id = static_cast<enum AVCodecID>(args[0]->NumberValue());
+  const char *name = avcodec_get_name(codec_id);
+  NanReturnValue(NanNew<String>(name));
+}
+
+NAN_GETTER(FFmpeg::AVCodecWrapper::GetIsEncoder) {
+  NanScope();
+  AVCodecWrapper *obj = ObjectWrap::Unwrap<AVCodecWrapper>(args.This());
+  int is_encoder = av_codec_is_encoder(obj->_this);
+  NanReturnValue(NanNew<Boolean>(is_encoder));
+}
+
+NAN_GETTER(FFmpeg::AVCodecWrapper::GetIsDecoder) {
+  NanScope();
+  AVCodecWrapper *obj = ObjectWrap::Unwrap<AVCodecWrapper>(args.This());
+  int is_decoder = av_codec_is_decoder(obj->_this);
+  NanReturnValue(NanNew<Boolean>(is_decoder));
+}
+
+NAN_GETTER(FFmpeg::AVCodecWrapper::GetName) {
+  NanScope();
+  AVCodecWrapper *obj = ObjectWrap::Unwrap<AVCodecWrapper>(args.This());
+  const char *name = obj->_this->name;
+  NanReturnValue(NanNew<String>(name));
+}
+
+NAN_GETTER(FFmpeg::AVCodecWrapper::GetLongName) {
+  NanScope();
+  AVCodecWrapper *obj = ObjectWrap::Unwrap<AVCodecWrapper>(args.This());
+  const char *long_name = obj->_this->long_name;
+  NanReturnValue(NanNew<String>(long_name));
+}
+
+NAN_GETTER(FFmpeg::AVCodecWrapper::GetType) {
+  NanScope();
+  AVCodecWrapper *obj = ObjectWrap::Unwrap<AVCodecWrapper>(args.This());
+  enum AVMediaType type = obj->_this->type;
+  NanReturnValue(NanNew<Number>(type));
+}
+
+NAN_GETTER(FFmpeg::AVCodecWrapper::GetId) {
+  NanScope();
+  AVCodecWrapper *obj = ObjectWrap::Unwrap<AVCodecWrapper>(args.This());
+  enum AVCodecID id = obj->_this->id;
+  NanReturnValue(NanNew<Number>(id));
+}
+
+NAN_GETTER(FFmpeg::AVCodecWrapper::GetMaxLowres) {
+  NanScope();
+  AVCodecWrapper *obj = ObjectWrap::Unwrap<AVCodecWrapper>(args.This());
+  uint8_t max_lowres = obj->_this->max_lowres;
+  NanReturnValue(NanNew<Number>(max_lowres));
 }

@@ -14,6 +14,8 @@ void Init(Handle<Object> exports) {
   avformat_network_init();
   avcodec_register_all();
 
+  FFmpeg::AVInputFormatWrapper::Initialize(exports);
+  FFmpeg::AVOutputFormatWrapper::Initialize(exports);
   FFmpeg::AVStreamWrapper::Initialize(exports);
   FFmpeg::AVProgramWrapper::Initialize(exports);
   FFmpeg::AVChapterWrapper::Initialize(exports);

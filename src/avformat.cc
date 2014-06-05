@@ -5,38 +5,234 @@ using namespace node;
 using namespace v8;
 
 
+Persistent<FunctionTemplate> FFmpeg::AVOutputFormatWrapper::constructor;
+
+FFmpeg::AVOutputFormatWrapper::AVOutputFormatWrapper() : _this(nullptr) {}
+
+FFmpeg::AVOutputFormatWrapper::~AVOutputFormatWrapper() {}
+
+void FFmpeg::AVOutputFormatWrapper::Initialize(Handle<Object> target) {
+  NanScope();
+
+  Local<FunctionTemplate> ctor = NanNew<FunctionTemplate>(New);
+  NanAssignPersistent(constructor, ctor);
+  ctor->InstanceTemplate()->SetInternalFieldCount(1);
+  ctor->SetClassName(NanNew<String>("AVOutputFormat"));
+
+  Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
+  proto->SetAccessor(NanNew<String>("name"), GetName);
+  proto->SetAccessor(NanNew<String>("long_name"), GetLongName);
+  proto->SetAccessor(NanNew<String>("mime_type"), GetMimeType);
+  proto->SetAccessor(NanNew<String>("extensions"), GetExtensions);
+  proto->SetAccessor(NanNew<String>("audio_codec"), GetAudioCodec);
+  proto->SetAccessor(NanNew<String>("video_codec"), GetVideoCodec);
+  proto->SetAccessor(NanNew<String>("subtitle_codec"), GetSubtitleCodec);
+
+  target->Set(NanNew<String>("AVOutputFormat"), ctor->GetFunction());
+  NODE_SET_METHOD(ctor->GetFunction(), "guessFormat", GuessFormat);
+  NODE_SET_METHOD(ctor->GetFunction(), "guessCodec", GuessCodec);
+  NODE_SET_METHOD(ctor->GetFunction(), "queryCodec", QueryCodec);
+}
+
+Handle<Value> FFmpeg::AVOutputFormatWrapper::newInstance(AVOutputFormat *oformat)
+{
+  NanScope();
+  Local<Function> ctor = constructor->GetFunction();
+  Handle<Object> ret = ctor->NewInstance();
+  AVOutputFormatWrapper *obj = ObjectWrap::Unwrap<AVOutputFormatWrapper>(ret);
+  obj->_this = oformat;
+  NanReturnValue(ret);
+}
+
+NAN_METHOD(FFmpeg::AVOutputFormatWrapper::New) {
+  if (args.IsConstructCall()) {
+    NanScope();
+    AVOutputFormatWrapper *obj = new AVOutputFormatWrapper;
+    obj->Wrap(args.This());
+    NanReturnValue(args.This());
+  }
+  NanScope();
+  NanReturnValue(constructor->GetFunction()->NewInstance());
+}
+
+NAN_METHOD(FFmpeg::AVOutputFormatWrapper::GuessFormat) {
+  NanScope();
+
+  if (!args[0]->IsString() || !args[1]->IsString() || !args[2]->IsString())
+    return NanThrowTypeError("short_name, filename, mime_type required");
+
+  const char *short_name = *String::Utf8Value(args[0]);
+  const char *filename = *String::Utf8Value(args[1]);
+  const char *mime_type = *String::Utf8Value(args[2]);
+
+  AVOutputFormat *oformat = av_guess_format(short_name, filename, mime_type);
+
+  if (oformat)
+    NanReturnValue(newInstance(oformat));
+  else
+    NanReturnNull();
+}
+
+NAN_METHOD(FFmpeg::AVOutputFormatWrapper::GuessCodec) {
+  NanScope();
+
+  if (!args[0]->IsObject() || !NanHasInstance(AVOutputFormatWrapper::constructor, args[0]->ToObject()))
+    return NanThrowTypeError("output format required");
+  if (!args[1]->IsString() || !args[2]->IsString() || !args[3]->IsString())
+    return NanThrowTypeError("short_name, filename, mime_type required");
+  if (!args[4]->IsNumber())
+    return NanThrowTypeError("media type required");
+
+  AVOutputFormatWrapper *obj = ObjectWrap::Unwrap<AVOutputFormatWrapper>(args[0]->ToObject());
+  AVOutputFormat *fmt = obj->_this;
+  const char *short_name = *String::Utf8Value(args[1]);
+  const char *filename = *String::Utf8Value(args[2]);
+  const char *mime_type = *String::Utf8Value(args[3]);
+  enum AVMediaType type = static_cast<enum AVMediaType>(args[4]->Uint32Value());
+
+  enum AVCodecID codec_id = av_guess_codec(fmt, short_name, filename, mime_type, type);
+
+  NanReturnValue(NanNew<Number>(codec_id));
+}
+
+NAN_METHOD(FFmpeg::AVOutputFormatWrapper::QueryCodec) {
+  NanScope();
+
+  if (!args[0]->IsObject() || !NanHasInstance(AVOutputFormatWrapper::constructor, args[0]->ToObject()))
+    return NanThrowTypeError("output format required");
+  if (!args[1]->IsNumber() || !args[2]->IsNumber())
+    return NanThrowTypeError("codec_id, std_compliance required");
+
+  AVOutputFormatWrapper *obj = ObjectWrap::Unwrap<AVOutputFormatWrapper>(args[0]->ToObject());
+  AVOutputFormat *ofmt = obj->_this;
+  enum AVCodecID codec_id = static_cast<enum AVCodecID>(args[1]->Uint32Value());
+  int std_compliance = args[2]->Int32Value();
+
+  int ret = avformat_query_codec(ofmt, codec_id, std_compliance);
+
+  NanReturnValue(NanNew<Number>(ret));
+}
+
+NAN_GETTER(FFmpeg::AVOutputFormatWrapper::GetName) {
+  NanScope();
+  AVOutputFormatWrapper *obj = ObjectWrap::Unwrap<AVOutputFormatWrapper>(args.This());
+  const char *name = obj->_this->name;
+  NanReturnValue(NanNew<String>(name));
+}
+
+NAN_GETTER(FFmpeg::AVOutputFormatWrapper::GetLongName) {
+  NanScope();
+  AVOutputFormatWrapper *obj = ObjectWrap::Unwrap<AVOutputFormatWrapper>(args.This());
+  const char *long_name = obj->_this->long_name;
+  NanReturnValue(NanNew<String>(long_name));
+}
+
+NAN_GETTER(FFmpeg::AVOutputFormatWrapper::GetMimeType) {
+  NanScope();
+  AVOutputFormatWrapper *obj = ObjectWrap::Unwrap<AVOutputFormatWrapper>(args.This());
+  const char *mime_type = obj->_this->mime_type;
+  NanReturnValue(NanNew<String>(mime_type));
+}
+
+NAN_GETTER(FFmpeg::AVOutputFormatWrapper::GetExtensions) {
+  NanScope();
+  AVOutputFormatWrapper *obj = ObjectWrap::Unwrap<AVOutputFormatWrapper>(args.This());
+  const char *extensions = obj->_this->extensions;
+  NanReturnValue(NanNew<String>(extensions));
+}
+
+NAN_GETTER(FFmpeg::AVOutputFormatWrapper::GetAudioCodec) {
+  NanScope();
+  AVOutputFormatWrapper *obj = ObjectWrap::Unwrap<AVOutputFormatWrapper>(args.This());
+  enum AVCodecID audio_codec = obj->_this->audio_codec;
+  NanReturnValue(NanNew<Number>(audio_codec));
+}
+
+NAN_GETTER(FFmpeg::AVOutputFormatWrapper::GetVideoCodec) {
+  NanScope();
+  AVOutputFormatWrapper *obj = ObjectWrap::Unwrap<AVOutputFormatWrapper>(args.This());
+  enum AVCodecID video_codec = obj->_this->video_codec;
+  NanReturnValue(NanNew<Number>(video_codec));
+}
+
+NAN_GETTER(FFmpeg::AVOutputFormatWrapper::GetSubtitleCodec) {
+  NanScope();
+  AVOutputFormatWrapper *obj = ObjectWrap::Unwrap<AVOutputFormatWrapper>(args.This());
+  enum AVCodecID subtitle_codec = obj->_this->subtitle_codec;
+  NanReturnValue(NanNew<Number>(subtitle_codec));
+}
+
+
 Persistent<FunctionTemplate> FFmpeg::AVInputFormatWrapper::constructor;
+
+FFmpeg::AVInputFormatWrapper::AVInputFormatWrapper() : _this(nullptr) {}
+
+FFmpeg::AVInputFormatWrapper::~AVInputFormatWrapper() {}
 
 void FFmpeg::AVInputFormatWrapper::Initialize(Handle<Object> target) {
   NanScope();
 
-  Local<FunctionTemplate> ctor = NanNew<FunctionTemplate>(FFmpeg::AVInputFormatWrapper::New);
+  Local<FunctionTemplate> ctor = NanNew<FunctionTemplate>(New);
   NanAssignPersistent(constructor, ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
   ctor->SetClassName(NanNew<String>("AVInputFormat"));
 
   Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
-  proto->SetAccessor(NanNew<String>("source"), GetSource, SetSource);
+  proto->SetAccessor(NanNew<String>("name"), GetName);
+  proto->SetAccessor(NanNew<String>("long_name"), GetLongName);
 
   target->Set(NanNew<String>("AVInputFormat"), ctor->GetFunction());
+  NODE_SET_METHOD(ctor->GetFunction(), "findInputFormat", FindInputFormat);
+}
+
+Handle<Value> FFmpeg::AVInputFormatWrapper::newInstance(AVInputFormat *iformat)
+{
+  NanScope();
+  Local<Function> ctor = constructor->GetFunction();
+  Handle<Object> ret = ctor->NewInstance();
+  AVInputFormatWrapper *obj = ObjectWrap::Unwrap<AVInputFormatWrapper>(ret);
+  obj->_this = iformat;
+  NanReturnValue(ret);
 }
 
 NAN_METHOD(FFmpeg::AVInputFormatWrapper::New) {
+  if (args.IsConstructCall()) {
+    NanScope();
+    AVInputFormatWrapper *obj = new AVInputFormatWrapper;
+    obj->Wrap(args.This());
+    NanReturnValue(args.This());
+  }
   NanScope();
-  AVInputFormatWrapper *obj = new FFmpeg::AVInputFormatWrapper;
-  obj->Wrap(args.This());
-  NanReturnValue(args.This());
+  NanReturnValue(constructor->GetFunction()->NewInstance());
 }
 
-NAN_GETTER(FFmpeg::AVInputFormatWrapper::GetSource) {
+NAN_METHOD(FFmpeg::AVInputFormatWrapper::FindInputFormat) {
   NanScope();
-  AVInputFormatWrapper *obj = ObjectWrap::Unwrap<AVInputFormatWrapper>(args.This());
-  NanReturnValue(NanNew<String>(""));
+
+  if (!args[0]->IsString())
+    return NanThrowTypeError("input format name required");
+
+  const char *short_name = *String::Utf8Value(args[0]);
+  AVInputFormat *iformat = av_find_input_format(short_name);
+
+  if (iformat)
+    NanReturnValue(newInstance(iformat));
+  else
+    NanReturnNull();
 }
 
-NAN_SETTER(FFmpeg::AVInputFormatWrapper::SetSource) {
+NAN_GETTER(FFmpeg::AVInputFormatWrapper::GetName) {
   NanScope();
   AVInputFormatWrapper *obj = ObjectWrap::Unwrap<AVInputFormatWrapper>(args.This());
+  const char *name = obj->_this->name;
+  NanReturnValue(NanNew<String>(name));
+}
+
+NAN_GETTER(FFmpeg::AVInputFormatWrapper::GetLongName) {
+  NanScope();
+  AVInputFormatWrapper *obj = ObjectWrap::Unwrap<AVInputFormatWrapper>(args.This());
+  const char *long_name = obj->_this->long_name;
+  NanReturnValue(NanNew<String>(long_name));
 }
 
 

@@ -50,7 +50,15 @@ namespace FFmpeg {
     static NAN_GETTER(GetWidth);
     static NAN_GETTER(GetHeight);
     static NAN_GETTER(GetPixFmt);
+    static NAN_GETTER(GetSampleRate);
+    static NAN_GETTER(GetChannels);
+    static NAN_GETTER(GetSampleFmt);
+    static NAN_GETTER(GetChannelLayout);
+    static NAN_GETTER(GetWorkaroundBugs);
+    static NAN_GETTER(GetErrorConcealment);
     static NAN_GETTER(GetLowres);
+    static NAN_SETTER(SetWorkaroundBugs);
+    static NAN_SETTER(SetErrorConcealment);
     static NAN_SETTER(SetLowres);
     AVCodecContextWrapper();
     ~AVCodecContextWrapper();

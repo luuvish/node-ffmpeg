@@ -35,6 +35,8 @@ codec.name == FFmpeg.AVCodec.getName(codec.id);
 codec.type == FFmpeg.AVCodec.getType(codec.id);
 ```
 
+### AVFormatContext in libavformat/avformat.h
+
 ```javascript
 var fmtctx = new FFmpeg.AVFormatContext();
 
@@ -52,6 +54,8 @@ for (var s in fmtctx.streams) {
 }
 ```
 
+### AVCodecContext in libavcodec/avcodec.h
+
 ```javascript
 var fmtctx = new FFmpeg.AVFormatContext();
 
@@ -61,12 +65,11 @@ var ctx = fmtctx.streams[0].codec;
 var codec = FFmpeg.AVCodec.findDecoder(ctx.codec_id);
 
 ctx.lowres = Math.min(ctx.lowres, codec.max_lowres);
+ctx.workaround_bugs == 1;
+ctx.error_concealment == 3;
 
 ctx.open(codec, {
-  workaround_bugs: true,
-  error_concealment: 3,
-  fast: false,
-  lowres: 0,
+  lowres: ctx.lowres,
   threads: 'auto',
   refcounted_frames: 1
 });
