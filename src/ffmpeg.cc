@@ -21,8 +21,12 @@ void Init(Handle<Object> exports) {
   FFmpeg::AVChapterWrapper::Initialize(exports);
   FFmpeg::AVFormatContextWrapper::Initialize(exports);
 
+  FFmpeg::AVPacketWrapper::Initialize(exports);
   FFmpeg::AVCodecContextWrapper::Initialize(exports);
   FFmpeg::AVCodecWrapper::Initialize(exports);
+  FFmpeg::AVPictureWrapper::Initialize(exports);
+  FFmpeg::AVSubtitleRectWrapper::Initialize(exports);
+  FFmpeg::AVSubtitleWrapper::Initialize(exports);
 }
 
 

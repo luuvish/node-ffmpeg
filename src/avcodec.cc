@@ -71,6 +71,13 @@ NAN_GETTER(FFmpeg::AVPacketWrapper::GetSize) {
   NanReturnValue(NanNew<Number>(size));
 }
 
+NAN_GETTER(FFmpeg::AVPacketWrapper::GetStreamIndex) {
+  NanScope();
+  AVPacketWrapper *obj = ObjectWrap::Unwrap<AVPacketWrapper>(args.This());
+  int stream_index = obj->_this->stream_index;
+  NanReturnValue(NanNew<Number>(stream_index));
+}
+
 NAN_GETTER(FFmpeg::AVPacketWrapper::GetDuration) {
   NanScope();
   AVPacketWrapper *obj = ObjectWrap::Unwrap<AVPacketWrapper>(args.This());
