@@ -455,7 +455,7 @@ NAN_METHOD(FFmpeg::AVCodecWrapper::New) {
 NAN_METHOD(FFmpeg::AVCodecWrapper::FindDecoder) {
   NanScope();
 
-  if (!args[0]->IsNumber() || !args[0]->IsString())
+  if (!args[0]->IsNumber() && !args[0]->IsString())
     return NanThrowTypeError("codec id or codec name required");
 
   AVCodec *codec = nullptr;
@@ -478,7 +478,7 @@ NAN_METHOD(FFmpeg::AVCodecWrapper::FindDecoder) {
 NAN_METHOD(FFmpeg::AVCodecWrapper::FindEncoder) {
   NanScope();
 
-  if (!args[0]->IsNumber() || !args[0]->IsString())
+  if (!args[0]->IsNumber() && !args[0]->IsString())
     return NanThrowTypeError("codec id or codec name required");
 
   AVCodec *codec = nullptr;

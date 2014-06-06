@@ -132,7 +132,7 @@ NAN_GETTER(FFmpeg::AVOutputFormatWrapper::GetMimeType) {
   NanScope();
   AVOutputFormatWrapper *obj = ObjectWrap::Unwrap<AVOutputFormatWrapper>(args.This());
   const char *mime_type = obj->_this->mime_type;
-  NanReturnValue(NanNew<String>(mime_type));
+  NanReturnValue(NanNew<String>(mime_type ? mime_type : ""));
 }
 
 NAN_GETTER(FFmpeg::AVOutputFormatWrapper::GetExtensions) {
@@ -717,11 +717,7 @@ NAN_METHOD(FFmpeg::AVFormatContextWrapper::FindBestStream) {
 
   AVCodec *decoder_ret = nullptr;
   int ret = av_find_best_stream(obj->_this, type, wanted_stream_nb, related_stream, &decoder_ret, flags);
-  if (!decoder_ret)
-    NanReturnValue(NanNew<Number>(ret));
-
-  Handle<Value> codec = AVCodecWrapper::newInstance(decoder_ret);
-  NanReturnValue(codec);
+  NanReturnValue(NanNew<Number>(ret));
 }
 
 NAN_METHOD(FFmpeg::AVFormatContextWrapper::ReadFrame) {
