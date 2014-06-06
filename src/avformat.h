@@ -74,8 +74,12 @@ namespace FFmpeg {
   private:
     static v8::Persistent<v8::FunctionTemplate> constructor;
     static NAN_METHOD(New);
-    static NAN_GETTER(GetCodec);
-    static NAN_SETTER(SetCodec);
+    static NAN_GETTER(GetId);
+    static NAN_GETTER(GetDiscard);
+    static NAN_GETTER(GetStreamIndex);
+    static NAN_GETTER(GetProgramNum);
+    static NAN_GETTER(GetStartTime);
+    static NAN_GETTER(GetEndTime);
     AVProgramWrapper();
     ~AVProgramWrapper();
     AVProgram *_this;
@@ -88,8 +92,10 @@ namespace FFmpeg {
   private:
     static v8::Persistent<v8::FunctionTemplate> constructor;
     static NAN_METHOD(New);
-    static NAN_GETTER(GetCodec);
-    static NAN_SETTER(SetCodec);
+    static NAN_GETTER(GetId);
+    static NAN_GETTER(GetTimeBase);
+    static NAN_GETTER(GetStart);
+    static NAN_GETTER(GetEnd);
     AVChapterWrapper();
     ~AVChapterWrapper();
     AVChapter *_this;
@@ -109,12 +115,20 @@ namespace FFmpeg {
     static NAN_METHOD(ReadPlay);
     static NAN_METHOD(ReadPause);
     static NAN_METHOD(ReadFrame);
+    static NAN_GETTER(GetIFormat);
+    static NAN_GETTER(GetOFormat);
     static NAN_GETTER(GetStreams);
-    static NAN_GETTER(GetPrograms);
-    static NAN_GETTER(GetChapters);
     static NAN_GETTER(GetFilename);
     static NAN_GETTER(GetStartTime);
     static NAN_GETTER(GetDuration);
+    static NAN_GETTER(GetPrograms);
+    static NAN_GETTER(GetVideoCodecId);
+    static NAN_GETTER(GetAudioCodecId);
+    static NAN_GETTER(GetSubtitleCodecId);
+    static NAN_GETTER(GetChapters);
+    static NAN_GETTER(GetVideoCodec);
+    static NAN_GETTER(GetAudioCodec);
+    static NAN_GETTER(GetSubtitleCodec);
     AVFormatContextWrapper();
     ~AVFormatContextWrapper();
     AVFormatContext *_this;

@@ -275,10 +275,14 @@ Handle<Value> FFmpeg::AVStreamWrapper::newInstance(AVStream *stream)
 }
 
 NAN_METHOD(FFmpeg::AVStreamWrapper::New) {
+  if (args.IsConstructCall()) {
+    NanScope();
+    AVStreamWrapper *obj = new AVStreamWrapper;
+    obj->Wrap(args.This());
+    NanReturnValue(args.This());
+  }
   NanScope();
-  AVStreamWrapper *obj = new AVStreamWrapper;
-  obj->Wrap(args.This());
-  NanReturnValue(args.This());
+  NanReturnValue(constructor->GetFunction()->NewInstance());
 }
 
 NAN_GETTER(FFmpeg::AVStreamWrapper::GetIndex) {
@@ -370,7 +374,14 @@ void FFmpeg::AVProgramWrapper::Initialize(Handle<Object> target) {
   ctor->SetClassName(NanNew<String>("AVProgram"));
 
   Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
-  proto->SetAccessor(NanNew<String>("codec"), GetCodec, SetCodec);
+  proto->SetAccessor(NanNew<String>("id"), GetId);
+  proto->SetAccessor(NanNew<String>("discard"), GetDiscard);
+  proto->SetAccessor(NanNew<String>("stream_index"), GetStreamIndex);
+  proto->SetAccessor(NanNew<String>("program_num"), GetProgramNum);
+  proto->SetAccessor(NanNew<String>("start_time"), GetStartTime);
+  proto->SetAccessor(NanNew<String>("end_time"), GetEndTime);
+
+  target->Set(NanNew<String>("AVProgram"), ctor->GetFunction());
 }
 
 Handle<Value> FFmpeg::AVProgramWrapper::newInstance(AVProgram *program)
@@ -384,21 +395,58 @@ Handle<Value> FFmpeg::AVProgramWrapper::newInstance(AVProgram *program)
 }
 
 NAN_METHOD(FFmpeg::AVProgramWrapper::New) {
+  if (args.IsConstructCall()) {
+    NanScope();
+    AVProgramWrapper *obj = new AVProgramWrapper;
+    obj->Wrap(args.This());
+    NanReturnValue(args.This());
+  }
   NanScope();
-  AVProgramWrapper *obj = new FFmpeg::AVProgramWrapper();
-  obj->Wrap(args.This());
-  NanReturnValue(args.This());
+  NanReturnValue(constructor->GetFunction()->NewInstance());
 }
 
-NAN_GETTER(FFmpeg::AVProgramWrapper::GetCodec) {
+NAN_GETTER(FFmpeg::AVProgramWrapper::GetId) {
   NanScope();
   AVProgramWrapper *obj = ObjectWrap::Unwrap<AVProgramWrapper>(args.This());
-  NanReturnValue(NanNew<String>(""));
+  int id = obj->_this->id;
+  NanReturnValue(NanNew<Number>(id));
 }
 
-NAN_SETTER(FFmpeg::AVProgramWrapper::SetCodec) {
+NAN_GETTER(FFmpeg::AVProgramWrapper::GetDiscard) {
   NanScope();
   AVProgramWrapper *obj = ObjectWrap::Unwrap<AVProgramWrapper>(args.This());
+  enum AVDiscard discard = obj->_this->discard;
+  NanReturnValue(NanNew<Number>(discard));
+}
+
+NAN_GETTER(FFmpeg::AVProgramWrapper::GetStreamIndex) {
+  NanScope();
+  AVProgramWrapper *obj = ObjectWrap::Unwrap<AVProgramWrapper>(args.This());
+  Handle<Array> stream_indexes = NanNew<Array>(obj->_this->nb_stream_indexes);
+  for (unsigned int i = 0; i < obj->_this->nb_stream_indexes; i++)
+    stream_indexes->Set(i, NanNew<Number>(obj->_this->stream_index[i]));
+  NanReturnValue(stream_indexes);
+}
+
+NAN_GETTER(FFmpeg::AVProgramWrapper::GetProgramNum) {
+  NanScope();
+  AVProgramWrapper *obj = ObjectWrap::Unwrap<AVProgramWrapper>(args.This());
+  int program_num = obj->_this->program_num;
+  NanReturnValue(NanNew<Number>(program_num));
+}
+
+NAN_GETTER(FFmpeg::AVProgramWrapper::GetStartTime) {
+  NanScope();
+  AVProgramWrapper *obj = ObjectWrap::Unwrap<AVProgramWrapper>(args.This());
+  int64_t start_time = obj->_this->start_time;
+  NanReturnValue(NanNew<Number>(start_time));
+}
+
+NAN_GETTER(FFmpeg::AVProgramWrapper::GetEndTime) {
+  NanScope();
+  AVProgramWrapper *obj = ObjectWrap::Unwrap<AVProgramWrapper>(args.This());
+  int64_t end_time = obj->_this->end_time;
+  NanReturnValue(NanNew<Number>(end_time));
 }
 
 
@@ -417,7 +465,12 @@ void FFmpeg::AVChapterWrapper::Initialize(Handle<Object> target) {
   ctor->SetClassName(NanNew<String>("AVChapter"));
 
   Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
-  proto->SetAccessor(NanNew<String>("codec"), GetCodec, SetCodec);
+  proto->SetAccessor(NanNew<String>("id"), GetId);
+  proto->SetAccessor(NanNew<String>("time_base"), GetTimeBase);
+  proto->SetAccessor(NanNew<String>("start"), GetStart);
+  proto->SetAccessor(NanNew<String>("end"), GetEnd);
+
+  target->Set(NanNew<String>("AVChapter"), ctor->GetFunction());
 }
 
 Handle<Value> FFmpeg::AVChapterWrapper::newInstance(AVChapter *chapter)
@@ -431,21 +484,45 @@ Handle<Value> FFmpeg::AVChapterWrapper::newInstance(AVChapter *chapter)
 }
 
 NAN_METHOD(FFmpeg::AVChapterWrapper::New) {
+  if (args.IsConstructCall()) {
+    NanScope();
+    AVChapterWrapper *obj = new AVChapterWrapper;
+    obj->Wrap(args.This());
+    NanReturnValue(args.This());
+  }
   NanScope();
-  AVChapterWrapper *obj = new FFmpeg::AVChapterWrapper();
-  obj->Wrap(args.This());
-  NanReturnValue(args.This());
+  NanReturnValue(constructor->GetFunction()->NewInstance());
 }
 
-NAN_GETTER(FFmpeg::AVChapterWrapper::GetCodec) {
+NAN_GETTER(FFmpeg::AVChapterWrapper::GetId) {
   NanScope();
   AVChapterWrapper *obj = ObjectWrap::Unwrap<AVChapterWrapper>(args.This());
-  NanReturnValue(NanNew<String>(""));
+  int id = obj->_this->id;
+  NanReturnValue(NanNew<Number>(id));
 }
 
-NAN_SETTER(FFmpeg::AVChapterWrapper::SetCodec) {
+NAN_GETTER(FFmpeg::AVChapterWrapper::GetTimeBase) {
   NanScope();
   AVChapterWrapper *obj = ObjectWrap::Unwrap<AVChapterWrapper>(args.This());
+  AVRational time_base = obj->_this->time_base;
+  Handle<Object> ret = NanNew<Object>();
+  ret->Set(NanNew<String>("num"), NanNew<Number>(time_base.num));
+  ret->Set(NanNew<String>("den"), NanNew<Number>(time_base.den));
+  NanReturnValue(ret);
+}
+
+NAN_GETTER(FFmpeg::AVChapterWrapper::GetStart) {
+  NanScope();
+  AVChapterWrapper *obj = ObjectWrap::Unwrap<AVChapterWrapper>(args.This());
+  int64_t start = obj->_this->start;
+  NanReturnValue(NanNew<Number>(start));
+}
+
+NAN_GETTER(FFmpeg::AVChapterWrapper::GetEnd) {
+  NanScope();
+  AVChapterWrapper *obj = ObjectWrap::Unwrap<AVChapterWrapper>(args.This());
+  int64_t end = obj->_this->end;
+  NanReturnValue(NanNew<Number>(end));
 }
 
 
@@ -477,25 +554,33 @@ void FFmpeg::AVFormatContextWrapper::Initialize(Handle<Object> target) {
   NODE_SET_PROTOTYPE_METHOD(ctor, "readPlay", ReadPlay);
   NODE_SET_PROTOTYPE_METHOD(ctor, "readPause", ReadPause);
   NODE_SET_PROTOTYPE_METHOD(ctor, "readFrame", ReadFrame);
+  proto->SetAccessor(NanNew<String>("iformat"), GetIFormat);
+  proto->SetAccessor(NanNew<String>("oformat"), GetOFormat);
   proto->SetAccessor(NanNew<String>("streams"), GetStreams);
-  proto->SetAccessor(NanNew<String>("programs"), GetPrograms);
-  proto->SetAccessor(NanNew<String>("chapters"), GetChapters);
   proto->SetAccessor(NanNew<String>("filename"), GetFilename);
   proto->SetAccessor(NanNew<String>("start_time"), GetStartTime);
   proto->SetAccessor(NanNew<String>("duration"), GetDuration);
+  proto->SetAccessor(NanNew<String>("programs"), GetPrograms);
+  proto->SetAccessor(NanNew<String>("video_codec_id"), GetVideoCodecId);
+  proto->SetAccessor(NanNew<String>("audio_codec_id"), GetAudioCodecId);
+  proto->SetAccessor(NanNew<String>("subtitle_codec_id"), GetSubtitleCodecId);
+  proto->SetAccessor(NanNew<String>("chapters"), GetChapters);
+  proto->SetAccessor(NanNew<String>("video_codec"), GetVideoCodec);
+  proto->SetAccessor(NanNew<String>("audio_codec"), GetAudioCodec);
+  proto->SetAccessor(NanNew<String>("subtitle_codec"), GetSubtitleCodec);
 
   target->Set(NanNew<String>("AVFormatContext"), ctor->GetFunction());
 }
 
 NAN_METHOD(FFmpeg::AVFormatContextWrapper::New) {
-  if (!args.IsConstructCall()) {
+  if (args.IsConstructCall()) {
     NanScope();
-    NanReturnValue(constructor->GetFunction()->NewInstance());
+    AVFormatContextWrapper *obj = new AVFormatContextWrapper;
+    obj->Wrap(args.This());
+    NanReturnValue(args.This());
   }
   NanScope();
-  AVFormatContextWrapper *obj = new AVFormatContextWrapper();
-  obj->Wrap(args.This());
-  NanReturnValue(args.This());
+  NanReturnValue(constructor->GetFunction()->NewInstance());
 }
 
 NAN_METHOD(FFmpeg::AVFormatContextWrapper::OpenInput) {
@@ -629,29 +714,21 @@ NAN_METHOD(FFmpeg::AVFormatContextWrapper::ReadFrame) {
   NanReturnUndefined();
 }
 
+NAN_GETTER(FFmpeg::AVFormatContextWrapper::GetIFormat) {
+  NanScope();
+  AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
+  Handle<Value> ret = AVInputFormatWrapper::newInstance(obj->_this->iformat);
+  NanReturnValue(ret);
+}
+
+NAN_GETTER(FFmpeg::AVFormatContextWrapper::GetOFormat) {
+  NanScope();
+  AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
+  Handle<Value> ret = AVOutputFormatWrapper::newInstance(obj->_this->oformat);
+  NanReturnValue(ret);
+}
+
 NAN_GETTER(FFmpeg::AVFormatContextWrapper::GetStreams) {
-  NanScope();
-  AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
-  Handle<Array> streams = NanNew<Array>(obj->_this->nb_streams);
-  for (unsigned int i = 0; i < obj->_this->nb_streams; i++) {
-    Handle<Value> v = AVStreamWrapper::newInstance(obj->_this->streams[i]);
-    streams->Set(i, v);
-  }
-  NanReturnValue(streams);
-}
-
-NAN_GETTER(FFmpeg::AVFormatContextWrapper::GetPrograms) {
-  NanScope();
-  AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
-  Handle<Array> streams = NanNew<Array>(obj->_this->nb_streams);
-  for (unsigned int i = 0; i < obj->_this->nb_streams; i++) {
-    Handle<Value> v = AVStreamWrapper::newInstance(obj->_this->streams[i]);
-    streams->Set(i, v);
-  }
-  NanReturnValue(streams);
-}
-
-NAN_GETTER(FFmpeg::AVFormatContextWrapper::GetChapters) {
   NanScope();
   AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
   Handle<Array> streams = NanNew<Array>(obj->_this->nb_streams);
@@ -681,4 +758,68 @@ NAN_GETTER(FFmpeg::AVFormatContextWrapper::GetDuration) {
   AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
   int64_t duration = obj->_this->duration;
   NanReturnValue(NanNew<Number>(duration));
+}
+
+NAN_GETTER(FFmpeg::AVFormatContextWrapper::GetPrograms) {
+  NanScope();
+  AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
+  Handle<Array> programs = NanNew<Array>(obj->_this->nb_programs);
+  for (unsigned int i = 0; i < obj->_this->nb_programs; i++) {
+    Handle<Value> v = AVProgramWrapper::newInstance(obj->_this->programs[i]);
+    programs->Set(i, v);
+  }
+  NanReturnValue(programs);
+}
+
+NAN_GETTER(FFmpeg::AVFormatContextWrapper::GetVideoCodecId) {
+  NanScope();
+  AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
+  enum AVCodecID video_codec_id = obj->_this->video_codec_id;
+  NanReturnValue(NanNew<Number>(video_codec_id));
+}
+
+NAN_GETTER(FFmpeg::AVFormatContextWrapper::GetAudioCodecId) {
+  NanScope();
+  AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
+  enum AVCodecID audio_codec_id = obj->_this->audio_codec_id;
+  NanReturnValue(NanNew<Number>(audio_codec_id));
+}
+
+NAN_GETTER(FFmpeg::AVFormatContextWrapper::GetSubtitleCodecId) {
+  NanScope();
+  AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
+  enum AVCodecID subtitle_codec_id = obj->_this->subtitle_codec_id;
+  NanReturnValue(NanNew<Number>(subtitle_codec_id));
+}
+
+NAN_GETTER(FFmpeg::AVFormatContextWrapper::GetChapters) {
+  NanScope();
+  AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
+  Handle<Array> chapters = NanNew<Array>(obj->_this->nb_chapters);
+  for (unsigned int i = 0; i < obj->_this->nb_chapters; i++) {
+    Handle<Value> v = AVChapterWrapper::newInstance(obj->_this->chapters[i]);
+    chapters->Set(i, v);
+  }
+  NanReturnValue(chapters);
+}
+
+NAN_GETTER(FFmpeg::AVFormatContextWrapper::GetVideoCodec) {
+  NanScope();
+  AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
+  Handle<Value> ret = AVCodecWrapper::newInstance(obj->_this->video_codec);
+  NanReturnValue(ret);
+}
+
+NAN_GETTER(FFmpeg::AVFormatContextWrapper::GetAudioCodec) {
+  NanScope();
+  AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
+  Handle<Value> ret = AVCodecWrapper::newInstance(obj->_this->audio_codec);
+  NanReturnValue(ret);
+}
+
+NAN_GETTER(FFmpeg::AVFormatContextWrapper::GetSubtitleCodec) {
+  NanScope();
+  AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
+  Handle<Value> ret = AVCodecWrapper::newInstance(obj->_this->subtitle_codec);
+  NanReturnValue(ret);
 }
