@@ -12,14 +12,16 @@ namespace FFmpeg {
   class AVPacketWrapper : public node::ObjectWrap {
   public:
     static void Initialize(v8::Handle<v8::Object> target);
-    static v8::Handle<v8::Value> newInstance(AVCodec *codec);
+    static v8::Handle<v8::Value> newInstance(AVPacket *packet);
   private:
     static v8::Persistent<v8::FunctionTemplate> constructor;
     static NAN_METHOD(New);
-    static NAN_GETTER(GetName);
-    static NAN_GETTER(GetLongName);
-    static NAN_GETTER(GetType);
-    static NAN_GETTER(GetId);
+    static NAN_GETTER(GetPts);
+    static NAN_GETTER(GetDts);
+    static NAN_GETTER(GetSize);
+    static NAN_GETTER(GetStreamIndex);
+    static NAN_GETTER(GetDuration);
+    static NAN_GETTER(GetPos);
     AVPacketWrapper();
     ~AVPacketWrapper();
     AVPacket *_this;
@@ -101,6 +103,27 @@ namespace FFmpeg {
     AVPictureWrapper();
     ~AVPictureWrapper();
     AVPicture *_this;
+  };
+
+  class AVSubtitleRectWrapper : public node::ObjectWrap {
+  public:
+    static void Initialize(v8::Handle<v8::Object> target);
+    static v8::Handle<v8::Value> newInstance(AVSubtitleRect *rect);
+  private:
+    static v8::Persistent<v8::FunctionTemplate> constructor;
+    static NAN_METHOD(New);
+    static NAN_GETTER(GetX);
+    static NAN_GETTER(GetY);
+    static NAN_GETTER(GetW);
+    static NAN_GETTER(GetH);
+    static NAN_GETTER(GetNbColors);
+    static NAN_GETTER(GetPict);
+    static NAN_GETTER(GetType);
+    static NAN_GETTER(GetText);
+    static NAN_GETTER(GetAss);
+    AVSubtitleRectWrapper();
+    ~AVSubtitleRectWrapper();
+    AVSubtitleRect *_this;
   };
 
   class AVSubtitleWrapper : public node::ObjectWrap {

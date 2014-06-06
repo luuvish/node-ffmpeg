@@ -14,15 +14,15 @@ void Init(Handle<Object> exports) {
   avformat_network_init();
   avcodec_register_all();
 
-  FFmpeg::AVInputFormatWrapper::Initialize(exports);
   FFmpeg::AVOutputFormatWrapper::Initialize(exports);
+  FFmpeg::AVInputFormatWrapper::Initialize(exports);
   FFmpeg::AVStreamWrapper::Initialize(exports);
   FFmpeg::AVProgramWrapper::Initialize(exports);
   FFmpeg::AVChapterWrapper::Initialize(exports);
   FFmpeg::AVFormatContextWrapper::Initialize(exports);
 
-  FFmpeg::AVCodecWrapper::Initialize(exports);
   FFmpeg::AVCodecContextWrapper::Initialize(exports);
+  FFmpeg::AVCodecWrapper::Initialize(exports);
 }
 
 

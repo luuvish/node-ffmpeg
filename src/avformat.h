@@ -53,7 +53,15 @@ namespace FFmpeg {
   private:
     static v8::Persistent<v8::FunctionTemplate> constructor;
     static NAN_METHOD(New);
+    static NAN_GETTER(GetIndex);
+    static NAN_GETTER(GetId);
     static NAN_GETTER(GetCodec);
+    static NAN_GETTER(GetPts);
+    static NAN_GETTER(GetTimeBase);
+    static NAN_GETTER(GetStartTime);
+    static NAN_GETTER(GetDuration);
+    static NAN_GETTER(GetDiscard);
+    static NAN_GETTER(GetSampleAspectRatio);
     AVStreamWrapper();
     ~AVStreamWrapper();
     AVStream *_this;

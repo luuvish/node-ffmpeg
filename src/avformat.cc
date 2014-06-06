@@ -251,7 +251,17 @@ void FFmpeg::AVStreamWrapper::Initialize(Handle<Object> target) {
   ctor->SetClassName(NanNew<String>("AVStream"));
 
   Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
+  proto->SetAccessor(NanNew<String>("index"), GetIndex);
+  proto->SetAccessor(NanNew<String>("id"), GetId);
   proto->SetAccessor(NanNew<String>("codec"), GetCodec);
+  proto->SetAccessor(NanNew<String>("pts"), GetPts);
+  proto->SetAccessor(NanNew<String>("time_base"), GetTimeBase);
+  proto->SetAccessor(NanNew<String>("start_time"), GetStartTime);
+  proto->SetAccessor(NanNew<String>("duration"), GetDuration);
+  proto->SetAccessor(NanNew<String>("discard"), GetDiscard);
+  proto->SetAccessor(NanNew<String>("sample_aspect_ratio"), GetSampleAspectRatio);
+
+  target->Set(NanNew<String>("AVStream"), ctor->GetFunction());
 }
 
 Handle<Value> FFmpeg::AVStreamWrapper::newInstance(AVStream *stream)
@@ -266,15 +276,81 @@ Handle<Value> FFmpeg::AVStreamWrapper::newInstance(AVStream *stream)
 
 NAN_METHOD(FFmpeg::AVStreamWrapper::New) {
   NanScope();
-  AVStreamWrapper *obj = new FFmpeg::AVStreamWrapper();
+  AVStreamWrapper *obj = new AVStreamWrapper;
   obj->Wrap(args.This());
   NanReturnValue(args.This());
+}
+
+NAN_GETTER(FFmpeg::AVStreamWrapper::GetIndex) {
+  NanScope();
+  AVStreamWrapper *obj = ObjectWrap::Unwrap<AVStreamWrapper>(args.This());
+  int index = obj->_this->index;
+  NanReturnValue(NanNew<Number>(index));
+}
+
+NAN_GETTER(FFmpeg::AVStreamWrapper::GetId) {
+  NanScope();
+  AVStreamWrapper *obj = ObjectWrap::Unwrap<AVStreamWrapper>(args.This());
+  int id = obj->_this->id;
+  NanReturnValue(NanNew<Number>(id));
 }
 
 NAN_GETTER(FFmpeg::AVStreamWrapper::GetCodec) {
   NanScope();
   AVStreamWrapper *obj = ObjectWrap::Unwrap<AVStreamWrapper>(args.This());
   Handle<Value> ret = AVCodecContextWrapper::newInstance(obj->_this->codec);
+  NanReturnValue(ret);
+}
+
+NAN_GETTER(FFmpeg::AVStreamWrapper::GetPts) {
+  NanScope();
+  AVStreamWrapper *obj = ObjectWrap::Unwrap<AVStreamWrapper>(args.This());
+  AVFrac pts = obj->_this->pts;
+  Handle<Object> ret = NanNew<Object>();
+  ret->Set(NanNew<String>("val"), NanNew<Number>(pts.val));
+  ret->Set(NanNew<String>("num"), NanNew<Number>(pts.num));
+  ret->Set(NanNew<String>("den"), NanNew<Number>(pts.den));
+  NanReturnValue(ret);
+}
+
+NAN_GETTER(FFmpeg::AVStreamWrapper::GetTimeBase) {
+  NanScope();
+  AVStreamWrapper *obj = ObjectWrap::Unwrap<AVStreamWrapper>(args.This());
+  AVRational time_base = obj->_this->time_base;
+  Handle<Object> ret = NanNew<Object>();
+  ret->Set(NanNew<String>("num"), NanNew<Number>(time_base.num));
+  ret->Set(NanNew<String>("den"), NanNew<Number>(time_base.den));
+  NanReturnValue(ret);
+}
+
+NAN_GETTER(FFmpeg::AVStreamWrapper::GetStartTime) {
+  NanScope();
+  AVStreamWrapper *obj = ObjectWrap::Unwrap<AVStreamWrapper>(args.This());
+  int64_t start_time = obj->_this->start_time;
+  NanReturnValue(NanNew<Number>(start_time));
+}
+
+NAN_GETTER(FFmpeg::AVStreamWrapper::GetDuration) {
+  NanScope();
+  AVStreamWrapper *obj = ObjectWrap::Unwrap<AVStreamWrapper>(args.This());
+  int64_t duration = obj->_this->duration;
+  NanReturnValue(NanNew<Number>(duration));
+}
+
+NAN_GETTER(FFmpeg::AVStreamWrapper::GetDiscard) {
+  NanScope();
+  AVStreamWrapper *obj = ObjectWrap::Unwrap<AVStreamWrapper>(args.This());
+  enum AVDiscard discard = obj->_this->discard;
+  NanReturnValue(NanNew<Number>(discard));
+}
+
+NAN_GETTER(FFmpeg::AVStreamWrapper::GetSampleAspectRatio) {
+  NanScope();
+  AVStreamWrapper *obj = ObjectWrap::Unwrap<AVStreamWrapper>(args.This());
+  AVRational sample_aspect_ratio = obj->_this->sample_aspect_ratio;
+  Handle<Object> ret = NanNew<Object>();
+  ret->Set(NanNew<String>("num"), NanNew<Number>(sample_aspect_ratio.num));
+  ret->Set(NanNew<String>("den"), NanNew<Number>(sample_aspect_ratio.den));
   NanReturnValue(ret);
 }
 
