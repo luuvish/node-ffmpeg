@@ -32,6 +32,7 @@ namespace FFmpeg {
   };
 
   class AVInputFormatWrapper : public node::ObjectWrap {
+  friend class AVFormatContextWrapper;
   public:
     static void Initialize(v8::Handle<v8::Object> target);
     static v8::Handle<v8::Value> newInstance(AVInputFormat *iformat);
@@ -68,6 +69,7 @@ namespace FFmpeg {
   };
 
   class AVProgramWrapper : public node::ObjectWrap {
+  friend class AVFormatContextWrapper;
   public:
     static void Initialize(v8::Handle<v8::Object> target);
     static v8::Handle<v8::Value> newInstance(AVProgram *program);
@@ -110,11 +112,17 @@ namespace FFmpeg {
     static NAN_METHOD(OpenInput);
     static NAN_METHOD(CloseInput);
     static NAN_METHOD(FindStreamInfo);
+    static NAN_METHOD(FindProgramFromStream);
     static NAN_METHOD(FindBestStream);
+    static NAN_METHOD(ReadFrame);
+    static NAN_METHOD(SeekFrame);
     static NAN_METHOD(SeekFile);
     static NAN_METHOD(ReadPlay);
     static NAN_METHOD(ReadPause);
-    static NAN_METHOD(ReadFrame);
+    static NAN_METHOD(WriteHeader);
+    static NAN_METHOD(WriteFrame);
+    static NAN_METHOD(WriteTrailer);
+    static NAN_METHOD(DumpFormat);
     static NAN_GETTER(GetIFormat);
     static NAN_GETTER(GetOFormat);
     static NAN_GETTER(GetStreams);
@@ -129,6 +137,9 @@ namespace FFmpeg {
     static NAN_GETTER(GetVideoCodec);
     static NAN_GETTER(GetAudioCodec);
     static NAN_GETTER(GetSubtitleCodec);
+    static NAN_SETTER(SetVideoCodec);
+    static NAN_SETTER(SetAudioCodec);
+    static NAN_SETTER(SetSubtitleCodec);
     AVFormatContextWrapper();
     ~AVFormatContextWrapper();
     AVFormatContext *_this;

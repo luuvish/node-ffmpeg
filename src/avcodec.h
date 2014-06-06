@@ -10,6 +10,7 @@ extern "C" {
 
 namespace FFmpeg {
   class AVPacketWrapper : public node::ObjectWrap {
+  friend class AVFormatContextWrapper;
   public:
     static void Initialize(v8::Handle<v8::Object> target);
     static v8::Handle<v8::Value> newInstance(AVPacket *packet);
@@ -69,6 +70,7 @@ namespace FFmpeg {
 
   class AVCodecWrapper : public node::ObjectWrap {
   friend class AVCodecContextWrapper;
+  friend class AVFormatContextWrapper;
   public:
     static void Initialize(v8::Handle<v8::Object> target);
     static v8::Handle<v8::Value> newInstance(AVCodec *codec);
