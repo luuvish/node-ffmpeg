@@ -12,7 +12,9 @@ namespace FFmpeg {
   class AVOutputFormatWrapper : public node::ObjectWrap {
   public:
     static void Initialize(v8::Handle<v8::Object> target);
-    static v8::Handle<v8::Value> newInstance(AVOutputFormat *oformat);
+    static v8::Handle<v8::Value> newInstance(AVOutputFormat *oformat=nullptr);
+    static bool HasInstance(v8::Handle<v8::Object> obj);
+    inline AVOutputFormat *This() { return _this; }
   private:
     static v8::Persistent<v8::FunctionTemplate> constructor;
     static NAN_METHOD(New);
@@ -26,31 +28,34 @@ namespace FFmpeg {
     static NAN_GETTER(GetAudioCodec);
     static NAN_GETTER(GetVideoCodec);
     static NAN_GETTER(GetSubtitleCodec);
-    AVOutputFormatWrapper();
-    ~AVOutputFormatWrapper();
+    explicit AVOutputFormatWrapper(AVOutputFormat *oformat=nullptr);
+    virtual ~AVOutputFormatWrapper();
     AVOutputFormat *_this;
   };
 
   class AVInputFormatWrapper : public node::ObjectWrap {
-  friend class AVFormatContextWrapper;
   public:
     static void Initialize(v8::Handle<v8::Object> target);
-    static v8::Handle<v8::Value> newInstance(AVInputFormat *iformat);
+    static v8::Handle<v8::Value> newInstance(AVInputFormat *iformat=nullptr);
+    static bool HasInstance(v8::Handle<v8::Object> obj);
+    inline AVInputFormat *This() { return _this; }
   private:
     static v8::Persistent<v8::FunctionTemplate> constructor;
     static NAN_METHOD(New);
     static NAN_METHOD(FindInputFormat);
     static NAN_GETTER(GetName);
     static NAN_GETTER(GetLongName);
-    AVInputFormatWrapper();
-    ~AVInputFormatWrapper();
+    explicit AVInputFormatWrapper(AVInputFormat *iformat=nullptr);
+    virtual ~AVInputFormatWrapper();
     AVInputFormat *_this;
   };
 
   class AVStreamWrapper : public node::ObjectWrap {
   public:
     static void Initialize(v8::Handle<v8::Object> target);
-    static v8::Handle<v8::Value> newInstance(AVStream *stream);
+    static v8::Handle<v8::Value> newInstance(AVStream *stream=nullptr);
+    static bool HasInstance(v8::Handle<v8::Object> obj);
+    inline AVStream *This() { return _this; }
   private:
     static v8::Persistent<v8::FunctionTemplate> constructor;
     static NAN_METHOD(New);
@@ -63,16 +68,18 @@ namespace FFmpeg {
     static NAN_GETTER(GetDuration);
     static NAN_GETTER(GetDiscard);
     static NAN_GETTER(GetSampleAspectRatio);
-    AVStreamWrapper();
-    ~AVStreamWrapper();
+    static NAN_SETTER(SetDiscard);
+    explicit AVStreamWrapper(AVStream *stream=nullptr);
+    virtual ~AVStreamWrapper();
     AVStream *_this;
   };
 
   class AVProgramWrapper : public node::ObjectWrap {
-  friend class AVFormatContextWrapper;
   public:
     static void Initialize(v8::Handle<v8::Object> target);
-    static v8::Handle<v8::Value> newInstance(AVProgram *program);
+    static v8::Handle<v8::Value> newInstance(AVProgram *program=nullptr);
+    static bool HasInstance(v8::Handle<v8::Object> obj);
+    inline AVProgram *This() { return _this; }
   private:
     static v8::Persistent<v8::FunctionTemplate> constructor;
     static NAN_METHOD(New);
@@ -82,15 +89,17 @@ namespace FFmpeg {
     static NAN_GETTER(GetProgramNum);
     static NAN_GETTER(GetStartTime);
     static NAN_GETTER(GetEndTime);
-    AVProgramWrapper();
-    ~AVProgramWrapper();
+    explicit AVProgramWrapper(AVProgram *program=nullptr);
+    virtual ~AVProgramWrapper();
     AVProgram *_this;
   };
 
   class AVChapterWrapper : public node::ObjectWrap {
   public:
     static void Initialize(v8::Handle<v8::Object> target);
-    static v8::Handle<v8::Value> newInstance(AVChapter *chapter);
+    static v8::Handle<v8::Value> newInstance(AVChapter *chapter=nullptr);
+    static bool HasInstance(v8::Handle<v8::Object> obj);
+    inline AVChapter *This() { return _this; }
   private:
     static v8::Persistent<v8::FunctionTemplate> constructor;
     static NAN_METHOD(New);
@@ -98,14 +107,17 @@ namespace FFmpeg {
     static NAN_GETTER(GetTimeBase);
     static NAN_GETTER(GetStart);
     static NAN_GETTER(GetEnd);
-    AVChapterWrapper();
-    ~AVChapterWrapper();
+    explicit AVChapterWrapper(AVChapter *chapter=nullptr);
+    virtual ~AVChapterWrapper();
     AVChapter *_this;
   };
 
   class AVFormatContextWrapper : public node::ObjectWrap {
   public:
     static void Initialize(v8::Handle<v8::Object> target);
+    static v8::Handle<v8::Value> newInstance(AVFormatContext *ctx=nullptr);
+    static bool HasInstance(v8::Handle<v8::Object> obj);
+    inline AVFormatContext *This() { return _this; }
   private:
     static v8::Persistent<v8::FunctionTemplate> constructor;
     static NAN_METHOD(New);
@@ -123,6 +135,8 @@ namespace FFmpeg {
     static NAN_METHOD(WriteFrame);
     static NAN_METHOD(WriteTrailer);
     static NAN_METHOD(DumpFormat);
+    static NAN_METHOD(GuessSampleAspectRatio);
+    static NAN_METHOD(GuessFrameRate);
     static NAN_GETTER(GetIFormat);
     static NAN_GETTER(GetOFormat);
     static NAN_GETTER(GetStreams);
@@ -140,8 +154,8 @@ namespace FFmpeg {
     static NAN_SETTER(SetVideoCodec);
     static NAN_SETTER(SetAudioCodec);
     static NAN_SETTER(SetSubtitleCodec);
-    AVFormatContextWrapper();
-    ~AVFormatContextWrapper();
+    explicit AVFormatContextWrapper(AVFormatContext *ctx=nullptr);
+    virtual ~AVFormatContextWrapper();
     AVFormatContext *_this;
   };
 }

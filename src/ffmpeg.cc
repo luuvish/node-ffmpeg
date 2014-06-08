@@ -3,16 +3,27 @@
 
 #include "avformat.h"
 #include "avcodec.h"
+#include "avframe.h"
 
 using namespace v8;
 
+
+NAN_METHOD(FFmpegInit) {
+  NanScope();
+
+  av_register_all();
+  avcodec_register_all();
+  avformat_network_init();
+
+  NanReturnUndefined();
+}
 
 void Init(Handle<Object> exports) {
   NanScope();
 
   av_register_all();
-  avformat_network_init();
   avcodec_register_all();
+  avformat_network_init();
 
   FFmpeg::AVOutputFormatWrapper::Initialize(exports);
   FFmpeg::AVInputFormatWrapper::Initialize(exports);
@@ -28,6 +39,19 @@ void Init(Handle<Object> exports) {
   FFmpeg::AVSubtitleRectWrapper::Initialize(exports);
   FFmpeg::AVSubtitleWrapper::Initialize(exports);
 
+  FFmpeg::AVFrameWrapper::Initialize(exports);
+
+  exports->Set(NanNew<String>("Init"), NanNew<FunctionTemplate>(FFmpegInit)->GetFunction());
+
+  // libavcodec/avcodec.h
+  exports->Set(NanNew<String>("AVDISCARD_NONE"), NanNew<Number>(AVDISCARD_NONE));
+  exports->Set(NanNew<String>("AVDISCARD_DEFAULT"), NanNew<Number>(AVDISCARD_DEFAULT));
+  exports->Set(NanNew<String>("AVDISCARD_NONREF"), NanNew<Number>(AVDISCARD_NONREF));
+  exports->Set(NanNew<String>("AVDISCARD_BIDIR"), NanNew<Number>(AVDISCARD_BIDIR));
+  exports->Set(NanNew<String>("AVDISCARD_NONKEY"), NanNew<Number>(AVDISCARD_NONKEY));
+  exports->Set(NanNew<String>("AVDISCARD_ALL"), NanNew<Number>(AVDISCARD_ALL));
+
+  // libavutil/avutil.h
   exports->Set(NanNew<String>("AVMEDIA_TYPE_UNKNOWN"), NanNew<Number>(AVMEDIA_TYPE_UNKNOWN));
   exports->Set(NanNew<String>("AVMEDIA_TYPE_VIDEO"), NanNew<Number>(AVMEDIA_TYPE_VIDEO));
   exports->Set(NanNew<String>("AVMEDIA_TYPE_AUDIO"), NanNew<Number>(AVMEDIA_TYPE_AUDIO));
@@ -35,6 +59,7 @@ void Init(Handle<Object> exports) {
   exports->Set(NanNew<String>("AVMEDIA_TYPE_SUBTITLE"), NanNew<Number>(AVMEDIA_TYPE_SUBTITLE));
   exports->Set(NanNew<String>("AVMEDIA_TYPE_ATTACHMENT"), NanNew<Number>(AVMEDIA_TYPE_ATTACHMENT));
 
+  // libavutil/avutil.h
   exports->Set(NanNew<String>("AV_NOPTS_VALUE"), NanNew<Number>(AV_NOPTS_VALUE));
   exports->Set(NanNew<String>("AV_TIME_BASE"), NanNew<Number>(AV_TIME_BASE));
   Handle<Object> time_base_q = NanNew<Object>();

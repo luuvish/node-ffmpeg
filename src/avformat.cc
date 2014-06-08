@@ -1,5 +1,6 @@
 #include "avformat.h"
 #include "avcodec.h"
+#include "avframe.h"
 
 using namespace node;
 using namespace v8;
@@ -7,9 +8,15 @@ using namespace v8;
 
 Persistent<FunctionTemplate> FFmpeg::AVOutputFormatWrapper::constructor;
 
-FFmpeg::AVOutputFormatWrapper::AVOutputFormatWrapper() : _this(nullptr) {}
+FFmpeg::AVOutputFormatWrapper::AVOutputFormatWrapper(AVOutputFormat *oformat) : _this(oformat) {
+  if (!_this)
+    _this = (AVOutputFormat *)av_mallocz(sizeof(AVOutputFormat));
+}
 
-FFmpeg::AVOutputFormatWrapper::~AVOutputFormatWrapper() {}
+FFmpeg::AVOutputFormatWrapper::~AVOutputFormatWrapper() {
+  if (_this)
+    av_freep(&_this);
+}
 
 void FFmpeg::AVOutputFormatWrapper::Initialize(Handle<Object> target) {
   NanScope();
@@ -38,17 +45,22 @@ void FFmpeg::AVOutputFormatWrapper::Initialize(Handle<Object> target) {
 Handle<Value> FFmpeg::AVOutputFormatWrapper::newInstance(AVOutputFormat *oformat)
 {
   NanScope();
-  Local<Function> ctor = constructor->GetFunction();
-  Handle<Object> ret = ctor->NewInstance();
-  AVOutputFormatWrapper *obj = ObjectWrap::Unwrap<AVOutputFormatWrapper>(ret);
-  obj->_this = oformat;
-  NanReturnValue(ret);
+  const int argc = 1;
+  Handle<Value> argv[argc] = { NanNew<External>(oformat) };
+  NanReturnValue(constructor->GetFunction()->NewInstance(argc, argv));
+}
+
+bool FFmpeg::AVOutputFormatWrapper::HasInstance(Handle<Object> obj) {
+  return NanHasInstance(constructor, obj);
 }
 
 NAN_METHOD(FFmpeg::AVOutputFormatWrapper::New) {
   if (args.IsConstructCall()) {
     NanScope();
-    AVOutputFormatWrapper *obj = new AVOutputFormatWrapper;
+    AVOutputFormat *oformat = nullptr;
+    if (args[0]->IsExternal())
+      oformat = static_cast<AVOutputFormat *>(External::Unwrap(args[0]));
+    AVOutputFormatWrapper *obj = new AVOutputFormatWrapper(oformat);
     obj->Wrap(args.This());
     NanReturnValue(args.This());
   }
@@ -77,15 +89,14 @@ NAN_METHOD(FFmpeg::AVOutputFormatWrapper::GuessFormat) {
 NAN_METHOD(FFmpeg::AVOutputFormatWrapper::GuessCodec) {
   NanScope();
 
-  if (!args[0]->IsObject() || !NanHasInstance(AVOutputFormatWrapper::constructor, args[0]->ToObject()))
+  if (!args[0]->IsObject() || !AVOutputFormatWrapper::HasInstance(args[0]->ToObject()))
     return NanThrowTypeError("output format required");
   if (!args[1]->IsString() || !args[2]->IsString() || !args[3]->IsString())
     return NanThrowTypeError("short_name, filename, mime_type required");
   if (!args[4]->IsNumber())
     return NanThrowTypeError("media type required");
 
-  AVOutputFormatWrapper *obj = ObjectWrap::Unwrap<AVOutputFormatWrapper>(args[0]->ToObject());
-  AVOutputFormat *fmt = obj->_this;
+  AVOutputFormat *fmt = ObjectWrap::Unwrap<AVOutputFormatWrapper>(args[0]->ToObject())->This();
   const char *short_name = *String::Utf8Value(args[1]);
   const char *filename = *String::Utf8Value(args[2]);
   const char *mime_type = *String::Utf8Value(args[3]);
@@ -99,13 +110,12 @@ NAN_METHOD(FFmpeg::AVOutputFormatWrapper::GuessCodec) {
 NAN_METHOD(FFmpeg::AVOutputFormatWrapper::QueryCodec) {
   NanScope();
 
-  if (!args[0]->IsObject() || !NanHasInstance(AVOutputFormatWrapper::constructor, args[0]->ToObject()))
+  if (!args[0]->IsObject() || !AVOutputFormatWrapper::HasInstance(args[0]->ToObject()))
     return NanThrowTypeError("output format required");
   if (!args[1]->IsNumber() || !args[2]->IsNumber())
     return NanThrowTypeError("codec_id, std_compliance required");
 
-  AVOutputFormatWrapper *obj = ObjectWrap::Unwrap<AVOutputFormatWrapper>(args[0]->ToObject());
-  AVOutputFormat *ofmt = obj->_this;
+  AVOutputFormat *ofmt = ObjectWrap::Unwrap<AVOutputFormatWrapper>(args[0]->ToObject())->This();
   enum AVCodecID codec_id = static_cast<enum AVCodecID>(args[1]->Uint32Value());
   int std_compliance = args[2]->Int32Value();
 
@@ -166,9 +176,15 @@ NAN_GETTER(FFmpeg::AVOutputFormatWrapper::GetSubtitleCodec) {
 
 Persistent<FunctionTemplate> FFmpeg::AVInputFormatWrapper::constructor;
 
-FFmpeg::AVInputFormatWrapper::AVInputFormatWrapper() : _this(nullptr) {}
+FFmpeg::AVInputFormatWrapper::AVInputFormatWrapper(AVInputFormat *iformat) : _this(iformat) {
+  if (!_this)
+    _this = (AVInputFormat *)av_mallocz(sizeof(AVInputFormat));
+}
 
-FFmpeg::AVInputFormatWrapper::~AVInputFormatWrapper() {}
+FFmpeg::AVInputFormatWrapper::~AVInputFormatWrapper() {
+  if (_this)
+    av_freep(&_this);
+}
 
 void FFmpeg::AVInputFormatWrapper::Initialize(Handle<Object> target) {
   NanScope();
@@ -190,17 +206,22 @@ void FFmpeg::AVInputFormatWrapper::Initialize(Handle<Object> target) {
 Handle<Value> FFmpeg::AVInputFormatWrapper::newInstance(AVInputFormat *iformat)
 {
   NanScope();
-  Local<Function> ctor = constructor->GetFunction();
-  Handle<Object> ret = ctor->NewInstance();
-  AVInputFormatWrapper *obj = ObjectWrap::Unwrap<AVInputFormatWrapper>(ret);
-  obj->_this = iformat;
-  NanReturnValue(ret);
+  const int argc = 1;
+  Handle<Value> argv[argc] = { NanNew<External>(iformat) };
+  NanReturnValue(constructor->GetFunction()->NewInstance(argc, argv));
+}
+
+bool FFmpeg::AVInputFormatWrapper::HasInstance(Handle<Object> obj) {
+  return NanHasInstance(constructor, obj);
 }
 
 NAN_METHOD(FFmpeg::AVInputFormatWrapper::New) {
   if (args.IsConstructCall()) {
     NanScope();
-    AVInputFormatWrapper *obj = new AVInputFormatWrapper;
+    AVInputFormat *iformat = nullptr;
+    if (args[0]->IsExternal())
+      iformat = static_cast<AVInputFormat *>(External::Unwrap(args[0]));
+    AVInputFormatWrapper *obj = new AVInputFormatWrapper(iformat);
     obj->Wrap(args.This());
     NanReturnValue(args.This());
   }
@@ -240,9 +261,15 @@ NAN_GETTER(FFmpeg::AVInputFormatWrapper::GetLongName) {
 
 Persistent<FunctionTemplate> FFmpeg::AVStreamWrapper::constructor;
 
-FFmpeg::AVStreamWrapper::AVStreamWrapper() : _this(nullptr) {}
+FFmpeg::AVStreamWrapper::AVStreamWrapper(AVStream *stream) : _this(stream) {
+  if (!_this)
+    _this = (AVStream *)av_mallocz(sizeof(AVStream));
+}
 
-FFmpeg::AVStreamWrapper::~AVStreamWrapper() {}
+FFmpeg::AVStreamWrapper::~AVStreamWrapper() {
+  if (_this)
+    av_freep(&_this);
+}
 
 void FFmpeg::AVStreamWrapper::Initialize(Handle<Object> target) {
   NanScope();
@@ -260,7 +287,7 @@ void FFmpeg::AVStreamWrapper::Initialize(Handle<Object> target) {
   proto->SetAccessor(NanNew<String>("time_base"), GetTimeBase);
   proto->SetAccessor(NanNew<String>("start_time"), GetStartTime);
   proto->SetAccessor(NanNew<String>("duration"), GetDuration);
-  proto->SetAccessor(NanNew<String>("discard"), GetDiscard);
+  proto->SetAccessor(NanNew<String>("discard"), GetDiscard, SetDiscard);
   proto->SetAccessor(NanNew<String>("sample_aspect_ratio"), GetSampleAspectRatio);
 
   Local<Function> creator = ctor->GetFunction();
@@ -270,17 +297,22 @@ void FFmpeg::AVStreamWrapper::Initialize(Handle<Object> target) {
 Handle<Value> FFmpeg::AVStreamWrapper::newInstance(AVStream *stream)
 {
   NanScope();
-  Local<Function> ctor = constructor->GetFunction();
-  Handle<Object> ret = ctor->NewInstance();
-  AVStreamWrapper *obj = ObjectWrap::Unwrap<AVStreamWrapper>(ret);
-  obj->_this = stream;
-  NanReturnValue(ret);
+  const int argc = 1;
+  Handle<Value> argv[argc] = { NanNew<External>(stream) };
+  NanReturnValue(constructor->GetFunction()->NewInstance(argc, argv));
+}
+
+bool FFmpeg::AVStreamWrapper::HasInstance(Handle<Object> obj) {
+  return NanHasInstance(constructor, obj);
 }
 
 NAN_METHOD(FFmpeg::AVStreamWrapper::New) {
   if (args.IsConstructCall()) {
     NanScope();
-    AVStreamWrapper *obj = new AVStreamWrapper;
+    AVStream *stream = nullptr;
+    if (args[0]->IsExternal())
+      stream = static_cast<AVStream *>(External::Unwrap(args[0]));
+    AVStreamWrapper *obj = new AVStreamWrapper(stream);
     obj->Wrap(args.This());
     NanReturnValue(args.This());
   }
@@ -361,12 +393,26 @@ NAN_GETTER(FFmpeg::AVStreamWrapper::GetSampleAspectRatio) {
   NanReturnValue(ret);
 }
 
+NAN_SETTER(FFmpeg::AVStreamWrapper::SetDiscard) {
+  NanScope();
+  if (!value->IsNumber())
+    NanThrowTypeError("discard required");
+  AVStreamWrapper *obj = ObjectWrap::Unwrap<AVStreamWrapper>(args.This());
+  obj->_this->discard = static_cast<enum AVDiscard>(value->NumberValue());
+}
+
 
 Persistent<FunctionTemplate> FFmpeg::AVProgramWrapper::constructor;
 
-FFmpeg::AVProgramWrapper::AVProgramWrapper() : _this(nullptr) {}
+FFmpeg::AVProgramWrapper::AVProgramWrapper(AVProgram *program) : _this(program) {
+  if (!_this)
+    _this = (AVProgram *)av_mallocz(sizeof(AVProgram));
+}
 
-FFmpeg::AVProgramWrapper::~AVProgramWrapper() {}
+FFmpeg::AVProgramWrapper::~AVProgramWrapper() {
+  if (_this)
+    av_freep(&_this);
+}
 
 void FFmpeg::AVProgramWrapper::Initialize(Handle<Object> target) {
   NanScope();
@@ -391,17 +437,22 @@ void FFmpeg::AVProgramWrapper::Initialize(Handle<Object> target) {
 Handle<Value> FFmpeg::AVProgramWrapper::newInstance(AVProgram *program)
 {
   NanScope();
-  Local<Function> ctor = constructor->GetFunction();
-  Handle<Object> ret = ctor->NewInstance();
-  AVProgramWrapper *obj = ObjectWrap::Unwrap<AVProgramWrapper>(ret);
-  obj->_this = program;
-  NanReturnValue(ret);
+  const int argc = 1;
+  Handle<Value> argv[argc] = { NanNew<External>(program) };
+  NanReturnValue(constructor->GetFunction()->NewInstance(argc, argv));
+}
+
+bool FFmpeg::AVProgramWrapper::HasInstance(Handle<Object> obj) {
+  return NanHasInstance(constructor, obj);
 }
 
 NAN_METHOD(FFmpeg::AVProgramWrapper::New) {
   if (args.IsConstructCall()) {
     NanScope();
-    AVProgramWrapper *obj = new AVProgramWrapper;
+    AVProgram *program = nullptr;
+    if (args[0]->IsExternal())
+      program = static_cast<AVProgram *>(External::Unwrap(args[0]));
+    AVProgramWrapper *obj = new AVProgramWrapper(program);
     obj->Wrap(args.This());
     NanReturnValue(args.This());
   }
@@ -456,9 +507,15 @@ NAN_GETTER(FFmpeg::AVProgramWrapper::GetEndTime) {
 
 Persistent<FunctionTemplate> FFmpeg::AVChapterWrapper::constructor;
 
-FFmpeg::AVChapterWrapper::AVChapterWrapper() : _this(nullptr) {}
+FFmpeg::AVChapterWrapper::AVChapterWrapper(AVChapter *chapter) : _this(chapter) {
+  if (!_this)
+    _this = (AVChapter *)av_mallocz(sizeof(AVChapter));
+}
 
-FFmpeg::AVChapterWrapper::~AVChapterWrapper() {}
+FFmpeg::AVChapterWrapper::~AVChapterWrapper() {
+  if (_this)
+    av_freep(&_this);
+}
 
 void FFmpeg::AVChapterWrapper::Initialize(Handle<Object> target) {
   NanScope();
@@ -481,17 +538,22 @@ void FFmpeg::AVChapterWrapper::Initialize(Handle<Object> target) {
 Handle<Value> FFmpeg::AVChapterWrapper::newInstance(AVChapter *chapter)
 {
   NanScope();
-  Local<Function> ctor = constructor->GetFunction();
-  Handle<Object> ret = ctor->NewInstance();
-  AVChapterWrapper *obj = ObjectWrap::Unwrap<AVChapterWrapper>(ret);
-  obj->_this = chapter;
-  NanReturnValue(ret);
+  const int argc = 1;
+  Handle<Value> argv[argc] = { NanNew<External>(chapter) };
+  NanReturnValue(constructor->GetFunction()->NewInstance(argc, argv));
+}
+
+bool FFmpeg::AVChapterWrapper::HasInstance(Handle<Object> obj) {
+  return NanHasInstance(constructor, obj);
 }
 
 NAN_METHOD(FFmpeg::AVChapterWrapper::New) {
   if (args.IsConstructCall()) {
     NanScope();
-    AVChapterWrapper *obj = new AVChapterWrapper;
+    AVChapter *chapter = nullptr;
+    if (args[0]->IsExternal())
+      chapter = static_cast<AVChapter *>(External::Unwrap(args[0]));
+    AVChapterWrapper *obj = new AVChapterWrapper(chapter);
     obj->Wrap(args.This());
     NanReturnValue(args.This());
   }
@@ -533,8 +595,9 @@ NAN_GETTER(FFmpeg::AVChapterWrapper::GetEnd) {
 
 Persistent<FunctionTemplate> FFmpeg::AVFormatContextWrapper::constructor;
 
-FFmpeg::AVFormatContextWrapper::AVFormatContextWrapper() : _this(nullptr) {
-  _this = avformat_alloc_context();
+FFmpeg::AVFormatContextWrapper::AVFormatContextWrapper(AVFormatContext *ctx) : _this(ctx) {
+  if (!_this)
+    _this = avformat_alloc_context();
 }
 
 FFmpeg::AVFormatContextWrapper::~AVFormatContextWrapper() {
@@ -565,6 +628,8 @@ void FFmpeg::AVFormatContextWrapper::Initialize(Handle<Object> target) {
   NODE_SET_PROTOTYPE_METHOD(ctor, "writeFrame", WriteFrame);
   NODE_SET_PROTOTYPE_METHOD(ctor, "writeTrailer", WriteTrailer);
   NODE_SET_PROTOTYPE_METHOD(ctor, "dumpFormat", DumpFormat);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "guessSampleAspectRatio", GuessSampleAspectRatio);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "guessFrameRate", GuessFrameRate);
   proto->SetAccessor(NanNew<String>("iformat"), GetIFormat);
   proto->SetAccessor(NanNew<String>("oformat"), GetOFormat);
   proto->SetAccessor(NanNew<String>("streams"), GetStreams);
@@ -584,10 +649,25 @@ void FFmpeg::AVFormatContextWrapper::Initialize(Handle<Object> target) {
   target->Set(NanNew<String>("AVFormatContext"), creator);
 }
 
+Handle<Value> FFmpeg::AVFormatContextWrapper::newInstance(AVFormatContext *ctx)
+{
+  NanScope();
+  const int argc = 1;
+  Handle<Value> argv[argc] = { NanNew<External>(ctx) };
+  NanReturnValue(constructor->GetFunction()->NewInstance(argc, argv));
+}
+
+bool FFmpeg::AVFormatContextWrapper::HasInstance(Handle<Object> obj) {
+  return NanHasInstance(constructor, obj);
+}
+
 NAN_METHOD(FFmpeg::AVFormatContextWrapper::New) {
   if (args.IsConstructCall()) {
     NanScope();
-    AVFormatContextWrapper *obj = new AVFormatContextWrapper;
+    AVFormatContext *ctx = nullptr;
+    if (args[0]->IsExternal())
+      ctx = static_cast<AVFormatContext *>(External::Unwrap(args[0]));
+    AVFormatContextWrapper *obj = new AVFormatContextWrapper(ctx);
     obj->Wrap(args.This());
     NanReturnValue(args.This());
   }
@@ -607,9 +687,8 @@ NAN_METHOD(FFmpeg::AVFormatContextWrapper::OpenInput) {
   int argc = 1;
 
   if (!args[1]->IsUndefined() && args[1]->IsObject()) {
-    Local<Object> arg1 = args[1]->ToObject();
-    if (NanHasInstance(AVInputFormatWrapper::constructor, arg1)) {
-      iformat = ObjectWrap::Unwrap<AVInputFormatWrapper>(arg1)->_this;
+    if (AVInputFormatWrapper::HasInstance(args[1]->ToObject())) {
+      iformat = ObjectWrap::Unwrap<AVInputFormatWrapper>(args[1]->ToObject())->This();
       argc++;
     }
   }
@@ -684,10 +763,9 @@ NAN_METHOD(FFmpeg::AVFormatContextWrapper::FindProgramFromStream) {
 
   AVProgram *last = nullptr;
   if (args[0]->IsObject()) {
-    if (!NanHasInstance(AVProgramWrapper::constructor, args[0]->ToObject()))
+    if (!AVProgramWrapper::HasInstance(args[0]->ToObject()))
       return NanThrowTypeError("media type, wanted_stream_nb, related_stream, flags required");
-    AVProgramWrapper *arg0 = ObjectWrap::Unwrap<AVProgramWrapper>(args[0]->ToObject());
-    last = arg0->_this;
+    last = ObjectWrap::Unwrap<AVProgramWrapper>(args[0]->ToObject())->This();
   }
   if (!args[1]->IsNumber())
     return NanThrowTypeError("stream_index required");
@@ -723,11 +801,10 @@ NAN_METHOD(FFmpeg::AVFormatContextWrapper::FindBestStream) {
 NAN_METHOD(FFmpeg::AVFormatContextWrapper::ReadFrame) {
   NanScope();
 
-  if (!args[0]->IsObject() || !NanHasInstance(AVPacketWrapper::constructor, args[0]->ToObject()))
+  if (!args[0]->IsObject() || !AVPacketWrapper::HasInstance(args[0]->ToObject()))
     return NanThrowTypeError("packet required");
 
-  AVPacketWrapper *arg0 = ObjectWrap::Unwrap<AVPacketWrapper>(args[0]->ToObject());
-  AVPacket *pkt = arg0->_this;
+  AVPacket *pkt = ObjectWrap::Unwrap<AVPacketWrapper>(args[0]->ToObject())->This();
 
   AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
   int ret = av_read_frame(obj->_this, pkt);
@@ -814,11 +891,10 @@ NAN_METHOD(FFmpeg::AVFormatContextWrapper::WriteHeader) {
 NAN_METHOD(FFmpeg::AVFormatContextWrapper::WriteFrame) {
   NanScope();
 
-  if (!args[0]->IsObject() || !NanHasInstance(AVPacketWrapper::constructor, args[0]->ToObject()))
+  if (!args[0]->IsObject() || !AVPacketWrapper::HasInstance(args[0]->ToObject()))
     return NanThrowTypeError("packet required");
 
-  AVPacketWrapper *arg0 = ObjectWrap::Unwrap<AVPacketWrapper>(args[0]->ToObject());
-  AVPacket *pkt = arg0->_this;
+  AVPacket *pkt = ObjectWrap::Unwrap<AVPacketWrapper>(args[0]->ToObject())->This();
 
   AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
   int ret = av_write_frame(obj->_this, pkt);
@@ -846,6 +922,70 @@ NAN_METHOD(FFmpeg::AVFormatContextWrapper::DumpFormat) {
   if ((!is_output && obj->_this->iformat) || (is_output && obj->_this->oformat))
     av_dump_format(obj->_this, index, url, is_output);
   NanReturnUndefined();
+}
+
+NAN_METHOD(FFmpeg::AVFormatContextWrapper::GuessSampleAspectRatio) {
+  NanScope();
+
+  AVStream *stream = nullptr;
+  AVFrame *frame = nullptr;
+  int argc = 0;
+
+  if (!args[argc]->IsUndefined() && args[argc]->IsObject()) {
+    if (AVStreamWrapper::HasInstance(args[argc]->ToObject())) {
+      stream = ObjectWrap::Unwrap<AVStreamWrapper>(args[argc]->ToObject())->This();
+      argc++;
+    }
+  }
+
+  if (!args[argc]->IsUndefined() && args[argc]->IsObject()) {
+    if (AVFrameWrapper::HasInstance(args[argc]->ToObject())) {
+      frame = ObjectWrap::Unwrap<AVFrameWrapper>(args[argc]->ToObject())->This();
+      argc++;
+    }
+  }
+
+  if (argc != args.Length())
+    return NanThrowTypeError("invalid arguments");
+
+  AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
+  AVRational sample_aspect_ratio = av_guess_sample_aspect_ratio(obj->_this, stream, frame);
+  Handle<Object> ret = NanNew<Object>();
+  ret->Set(NanNew<String>("num"), NanNew<Number>(sample_aspect_ratio.num));
+  ret->Set(NanNew<String>("den"), NanNew<Number>(sample_aspect_ratio.den));
+  NanReturnValue(ret);
+}
+
+NAN_METHOD(FFmpeg::AVFormatContextWrapper::GuessFrameRate) {
+  NanScope();
+
+  AVStream *stream = nullptr;
+  AVFrame *frame = nullptr;
+  int argc = 0;
+
+  if (!args[argc]->IsUndefined() && args[argc]->IsObject()) {
+    if (AVStreamWrapper::HasInstance(args[argc]->ToObject())) {
+      stream = ObjectWrap::Unwrap<AVStreamWrapper>(args[argc]->ToObject())->This();
+      argc++;
+    }
+  }
+
+  if (!args[argc]->IsUndefined() && args[argc]->IsObject()) {
+    if (AVFrameWrapper::HasInstance(args[argc]->ToObject())) {
+      frame = ObjectWrap::Unwrap<AVFrameWrapper>(args[argc]->ToObject())->This();
+      argc++;
+    }
+  }
+
+  if (argc != args.Length())
+    return NanThrowTypeError("invalid arguments");
+
+  AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
+  AVRational frame_rate = av_guess_frame_rate(obj->_this, stream, frame);
+  Handle<Object> ret = NanNew<Object>();
+  ret->Set(NanNew<String>("num"), NanNew<Number>(frame_rate.num));
+  ret->Set(NanNew<String>("den"), NanNew<Number>(frame_rate.den));
+  NanReturnValue(ret);
 }
 
 NAN_GETTER(FFmpeg::AVFormatContextWrapper::GetIFormat) {
@@ -979,30 +1119,27 @@ NAN_GETTER(FFmpeg::AVFormatContextWrapper::GetSubtitleCodec) {
 
 NAN_SETTER(FFmpeg::AVFormatContextWrapper::SetVideoCodec) {
   NanScope();
-  if (!value->IsObject() || !NanHasInstance(AVCodecWrapper::constructor, value->ToObject()))
+  if (!value->IsObject() || !AVCodecWrapper::HasInstance(value->ToObject()))
     NanThrowTypeError("codec required");
-  AVCodecWrapper *arg0 = ObjectWrap::Unwrap<AVCodecWrapper>(value->ToObject());
-  AVCodec *codec = arg0->_this;
+  AVCodec *codec = ObjectWrap::Unwrap<AVCodecWrapper>(value->ToObject())->This();
   AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
   av_format_set_video_codec(obj->_this, codec);
 }
 
 NAN_SETTER(FFmpeg::AVFormatContextWrapper::SetAudioCodec) {
   NanScope();
-  if (!value->IsObject() || !NanHasInstance(AVCodecWrapper::constructor, value->ToObject()))
+  if (!value->IsObject() || !AVCodecWrapper::HasInstance(value->ToObject()))
     NanThrowTypeError("codec required");
-  AVCodecWrapper *arg0 = ObjectWrap::Unwrap<AVCodecWrapper>(value->ToObject());
-  AVCodec *codec = arg0->_this;
+  AVCodec *codec = ObjectWrap::Unwrap<AVCodecWrapper>(value->ToObject())->This();
   AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
   av_format_set_audio_codec(obj->_this, codec);
 }
 
 NAN_SETTER(FFmpeg::AVFormatContextWrapper::SetSubtitleCodec) {
   NanScope();
-  if (!value->IsObject() || !NanHasInstance(AVCodecWrapper::constructor, value->ToObject()))
+  if (!value->IsObject() || !AVCodecWrapper::HasInstance(value->ToObject()))
     NanThrowTypeError("codec required");
-  AVCodecWrapper *arg0 = ObjectWrap::Unwrap<AVCodecWrapper>(value->ToObject());
-  AVCodec *codec = arg0->_this;
+  AVCodec *codec = ObjectWrap::Unwrap<AVCodecWrapper>(value->ToObject())->This();
   AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
   av_format_set_subtitle_codec(obj->_this, codec);
 }
