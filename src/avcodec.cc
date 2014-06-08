@@ -202,10 +202,12 @@ NAN_METHOD(FFmpeg::AVCodecContextWrapper::Open) {
         argc++;
       }
     } else if (args[0]->IsNumber()) {
-      codec = avcodec_find_decoder(static_cast<enum AVCodecID>(args[0]->Uint32Value()));
+      enum AVCodecID codec_id = static_cast<enum AVCodecID>(args[0]->Uint32Value());
+      codec = avcodec_find_decoder(codec_id);
       argc++;
     } else if (args[0]->IsString()) {
-      codec = avcodec_find_decoder_by_name(*String::Utf8Value(args[0]));
+      String::Utf8Value codec_name(args[0]);
+      codec = avcodec_find_decoder_by_name(*codec_name);
       argc++;
     }
   }
@@ -218,8 +220,11 @@ NAN_METHOD(FFmpeg::AVCodecContextWrapper::Open) {
     for (uint32_t i = 0; i < keys->Length(); i++) {
       Local<Value> key = keys->Get(i);
       Local<Value> val = opts->Get(key);
-      if (val->IsNumber() || val->IsString())
-        av_dict_set(&options, *String::Utf8Value(key), *String::Utf8Value(val), 0);
+      if (val->IsNumber() || val->IsString()) {
+        String::Utf8Value key_str(key);
+        String::Utf8Value val_str(val);
+        av_dict_set(&options, *key_str, *val_str, 0);
+      }
     }
     argc++;
   }
@@ -516,8 +521,8 @@ NAN_METHOD(FFmpeg::AVCodecWrapper::FindDecoder) {
     codec = avcodec_find_decoder(codec_id);
   }
   if (args[0]->IsString()) {
-    const char *codec_name = *String::Utf8Value(args[0]);
-    codec = avcodec_find_decoder_by_name(codec_name);
+    String::Utf8Value codec_name(args[0]);
+    codec = avcodec_find_decoder_by_name(*codec_name);
   }
 
   if (codec)
@@ -539,8 +544,8 @@ NAN_METHOD(FFmpeg::AVCodecWrapper::FindEncoder) {
     codec = avcodec_find_encoder(codec_id);
   }
   if (args[0]->IsString()) {
-    const char *codec_name = *String::Utf8Value(args[0]);
-    codec = avcodec_find_encoder_by_name(codec_name);
+    String::Utf8Value codec_name(args[0]);
+    codec = avcodec_find_encoder_by_name(*codec_name);
   }
 
   if (codec)

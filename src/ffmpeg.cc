@@ -8,16 +8,6 @@
 using namespace v8;
 
 
-NAN_METHOD(FFmpegInit) {
-  NanScope();
-
-  av_register_all();
-  avcodec_register_all();
-  avformat_network_init();
-
-  NanReturnUndefined();
-}
-
 void Init(Handle<Object> exports) {
   NanScope();
 
@@ -40,8 +30,6 @@ void Init(Handle<Object> exports) {
   FFmpeg::AVSubtitleWrapper::Initialize(exports);
 
   FFmpeg::AVFrameWrapper::Initialize(exports);
-
-  exports->Set(NanNew<String>("Init"), NanNew<FunctionTemplate>(FFmpegInit)->GetFunction());
 
   // libavcodec/avcodec.h
   exports->Set(NanNew<String>("AVDISCARD_NONE"), NanNew<Number>(AVDISCARD_NONE));

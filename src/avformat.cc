@@ -74,11 +74,11 @@ NAN_METHOD(FFmpeg::AVOutputFormatWrapper::GuessFormat) {
   if (!args[0]->IsString() || !args[1]->IsString() || !args[2]->IsString())
     return NanThrowTypeError("short_name, filename, mime_type required");
 
-  const char *short_name = *String::Utf8Value(args[0]);
-  const char *filename = *String::Utf8Value(args[1]);
-  const char *mime_type = *String::Utf8Value(args[2]);
+  String::Utf8Value short_name(args[0]);
+  String::Utf8Value filename(args[1]);
+  String::Utf8Value mime_type(args[2]);
 
-  AVOutputFormat *oformat = av_guess_format(short_name, filename, mime_type);
+  AVOutputFormat *oformat = av_guess_format(*short_name, *filename, *mime_type);
 
   if (oformat)
     NanReturnValue(newInstance(oformat));
@@ -97,12 +97,12 @@ NAN_METHOD(FFmpeg::AVOutputFormatWrapper::GuessCodec) {
     return NanThrowTypeError("media type required");
 
   AVOutputFormat *fmt = ObjectWrap::Unwrap<AVOutputFormatWrapper>(args[0]->ToObject())->This();
-  const char *short_name = *String::Utf8Value(args[1]);
-  const char *filename = *String::Utf8Value(args[2]);
-  const char *mime_type = *String::Utf8Value(args[3]);
+  String::Utf8Value short_name(args[1]);
+  String::Utf8Value filename(args[2]);
+  String::Utf8Value mime_type(args[3]);
   enum AVMediaType type = static_cast<enum AVMediaType>(args[4]->Uint32Value());
 
-  enum AVCodecID codec_id = av_guess_codec(fmt, short_name, filename, mime_type, type);
+  enum AVCodecID codec_id = av_guess_codec(fmt, *short_name, *filename, *mime_type, type);
 
   NanReturnValue(NanNew<Number>(codec_id));
 }
@@ -235,8 +235,8 @@ NAN_METHOD(FFmpeg::AVInputFormatWrapper::FindInputFormat) {
   if (!args[0]->IsString())
     return NanThrowTypeError("input format name required");
 
-  const char *short_name = *String::Utf8Value(args[0]);
-  AVInputFormat *iformat = av_find_input_format(short_name);
+  String::Utf8Value short_name(args[0]);
+  AVInputFormat *iformat = av_find_input_format(*short_name);
 
   if (iformat)
     NanReturnValue(newInstance(iformat));
@@ -681,7 +681,7 @@ NAN_METHOD(FFmpeg::AVFormatContextWrapper::OpenInput) {
   if (!args[0]->IsString())
     return NanThrowTypeError("filename required");
 
-  const char *filename = *String::Utf8Value(args[0]);
+  String::Utf8Value filename(args[0]);
   AVInputFormat* iformat = nullptr;
   AVDictionary* options = nullptr;
   int argc = 1;
@@ -699,8 +699,11 @@ NAN_METHOD(FFmpeg::AVFormatContextWrapper::OpenInput) {
     for (uint32_t i = 0; i < keys->Length(); i++) {
       Local<Value> key = keys->Get(i);
       Local<Value> val = opts->Get(key);
-      if (val->IsNumber() || val->IsString())
-        av_dict_set(&options, *String::Utf8Value(key), *String::Utf8Value(val), 0);
+      if (val->IsNumber() || val->IsString()) {
+        String::Utf8Value key_str(key);
+        String::Utf8Value val_str(val);
+        av_dict_set(&options, *key_str, *val_str, 0);
+      }
     }
     argc++;
   }
@@ -712,7 +715,7 @@ NAN_METHOD(FFmpeg::AVFormatContextWrapper::OpenInput) {
 
   AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
 
-  int ret = avformat_open_input(&obj->_this, filename, iformat, &options);
+  int ret = avformat_open_input(&obj->_this, *filename, iformat, &options);
 
   AVDictionaryEntry *t = nullptr;
   if ((t = av_dict_get(options, "", nullptr, AV_DICT_IGNORE_SUFFIX))) {
@@ -870,8 +873,11 @@ NAN_METHOD(FFmpeg::AVFormatContextWrapper::WriteHeader) {
     for (uint32_t i = 0; i < keys->Length(); i++) {
       Local<Value> key = keys->Get(i);
       Local<Value> val = opts->Get(key);
-      if (val->IsNumber() || val->IsString())
-        av_dict_set(&options, *String::Utf8Value(key), *String::Utf8Value(val), 0);
+      if (val->IsNumber() || val->IsString()) {
+        String::Utf8Value key_str(key);
+        String::Utf8Value val_str(val);
+        av_dict_set(&options, *key_str, *val_str, 0);
+      }
     }
   }
 
@@ -915,12 +921,12 @@ NAN_METHOD(FFmpeg::AVFormatContextWrapper::DumpFormat) {
     return NanThrowTypeError("index, url, is_output required");
 
   int index = args[0]->Int32Value();
-  const char *url = *String::Utf8Value(args[1]);
+  String::Utf8Value url(args[1]);
   int is_output = args[2]->Int32Value();
 
   AVFormatContextWrapper *obj = ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
   if ((!is_output && obj->_this->iformat) || (is_output && obj->_this->oformat))
-    av_dump_format(obj->_this, index, url, is_output);
+    av_dump_format(obj->_this, index, *url, is_output);
   NanReturnUndefined();
 }
 
