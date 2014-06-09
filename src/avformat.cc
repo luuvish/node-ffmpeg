@@ -8,13 +8,15 @@ using namespace v8;
 
 Persistent<FunctionTemplate> FFmpeg::AVOutputFormatWrapper::constructor;
 
-FFmpeg::AVOutputFormatWrapper::AVOutputFormatWrapper(AVOutputFormat *oformat) : _this(oformat) {
-  if (!_this)
+FFmpeg::AVOutputFormatWrapper::AVOutputFormatWrapper(AVOutputFormat *oformat) : _this(oformat), _allocated(false) {
+  if (!_this) {
     _this = (AVOutputFormat *)av_mallocz(sizeof(AVOutputFormat));
+    _allocated = true;
+  }
 }
 
 FFmpeg::AVOutputFormatWrapper::~AVOutputFormatWrapper() {
-  if (_this)
+  if (_this && _allocated)
     av_freep(&_this);
 }
 
@@ -176,13 +178,15 @@ NAN_GETTER(FFmpeg::AVOutputFormatWrapper::GetSubtitleCodec) {
 
 Persistent<FunctionTemplate> FFmpeg::AVInputFormatWrapper::constructor;
 
-FFmpeg::AVInputFormatWrapper::AVInputFormatWrapper(AVInputFormat *iformat) : _this(iformat) {
-  if (!_this)
+FFmpeg::AVInputFormatWrapper::AVInputFormatWrapper(AVInputFormat *iformat) : _this(iformat), _allocated(false) {
+  if (!_this) {
     _this = (AVInputFormat *)av_mallocz(sizeof(AVInputFormat));
+    _allocated = true;
+  }
 }
 
 FFmpeg::AVInputFormatWrapper::~AVInputFormatWrapper() {
-  if (_this)
+  if (_this && _allocated)
     av_freep(&_this);
 }
 
@@ -261,13 +265,15 @@ NAN_GETTER(FFmpeg::AVInputFormatWrapper::GetLongName) {
 
 Persistent<FunctionTemplate> FFmpeg::AVStreamWrapper::constructor;
 
-FFmpeg::AVStreamWrapper::AVStreamWrapper(AVStream *stream) : _this(stream) {
-  if (!_this)
+FFmpeg::AVStreamWrapper::AVStreamWrapper(AVStream *stream) : _this(stream), _allocated(false) {
+  if (!_this) {
     _this = (AVStream *)av_mallocz(sizeof(AVStream));
+    _allocated = true;
+  }
 }
 
 FFmpeg::AVStreamWrapper::~AVStreamWrapper() {
-  if (_this)
+  if (_this && _allocated)
     av_freep(&_this);
 }
 
@@ -404,13 +410,15 @@ NAN_SETTER(FFmpeg::AVStreamWrapper::SetDiscard) {
 
 Persistent<FunctionTemplate> FFmpeg::AVProgramWrapper::constructor;
 
-FFmpeg::AVProgramWrapper::AVProgramWrapper(AVProgram *program) : _this(program) {
-  if (!_this)
+FFmpeg::AVProgramWrapper::AVProgramWrapper(AVProgram *program) : _this(program), _allocated(false) {
+  if (!_this) {
     _this = (AVProgram *)av_mallocz(sizeof(AVProgram));
+    _allocated = true;
+  }
 }
 
 FFmpeg::AVProgramWrapper::~AVProgramWrapper() {
-  if (_this)
+  if (_this && _allocated)
     av_freep(&_this);
 }
 
@@ -507,13 +515,15 @@ NAN_GETTER(FFmpeg::AVProgramWrapper::GetEndTime) {
 
 Persistent<FunctionTemplate> FFmpeg::AVChapterWrapper::constructor;
 
-FFmpeg::AVChapterWrapper::AVChapterWrapper(AVChapter *chapter) : _this(chapter) {
-  if (!_this)
+FFmpeg::AVChapterWrapper::AVChapterWrapper(AVChapter *chapter) : _this(chapter), _allocated(false) {
+  if (!_this) {
     _this = (AVChapter *)av_mallocz(sizeof(AVChapter));
+    _allocated = true;
+  }
 }
 
 FFmpeg::AVChapterWrapper::~AVChapterWrapper() {
-  if (_this)
+  if (_this && _allocated)
     av_freep(&_this);
 }
 
@@ -595,13 +605,15 @@ NAN_GETTER(FFmpeg::AVChapterWrapper::GetEnd) {
 
 Persistent<FunctionTemplate> FFmpeg::AVFormatContextWrapper::constructor;
 
-FFmpeg::AVFormatContextWrapper::AVFormatContextWrapper(AVFormatContext *ctx) : _this(ctx) {
-  if (!_this)
+FFmpeg::AVFormatContextWrapper::AVFormatContextWrapper(AVFormatContext *ctx) : _this(ctx), _allocated(false) {
+  if (!_this) {
     _this = avformat_alloc_context();
+    _allocated = true;
+  }
 }
 
 FFmpeg::AVFormatContextWrapper::~AVFormatContextWrapper() {
-  if (_this)
+  if (_this && _allocated)
     avformat_free_context(_this);
 }
 

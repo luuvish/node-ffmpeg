@@ -7,13 +7,15 @@ using namespace v8;
 
 Persistent<FunctionTemplate> FFmpeg::AVPacketWrapper::constructor;
 
-FFmpeg::AVPacketWrapper::AVPacketWrapper(AVPacket *packet) : _this(packet) {
-  if (!_this)
+FFmpeg::AVPacketWrapper::AVPacketWrapper(AVPacket *packet) : _this(packet), _allocated(false) {
+  if (!_this) {
     _this = (AVPacket *)av_mallocz(sizeof(AVPacket));
+    _allocated = true;
+  }
 }
 
 FFmpeg::AVPacketWrapper::~AVPacketWrapper() {
-  if (_this) {
+  if (_this && _allocated) {
     av_free_packet(_this);
     av_freep(&_this);
   }
@@ -28,6 +30,8 @@ void FFmpeg::AVPacketWrapper::Initialize(Handle<Object> target) {
   ctor->SetClassName(NanNew<String>("AVPacket"));
 
   Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
+  NODE_SET_PROTOTYPE_METHOD(ctor, "init", Init);
+  NODE_SET_PROTOTYPE_METHOD(ctor, "free", Free);
   proto->SetAccessor(NanNew<String>("pts"), GetPts);
   proto->SetAccessor(NanNew<String>("dts"), GetDts);
   proto->SetAccessor(NanNew<String>("size"), GetSize);
@@ -63,6 +67,20 @@ NAN_METHOD(FFmpeg::AVPacketWrapper::New) {
   }
   NanScope();
   NanReturnValue(constructor->GetFunction()->NewInstance());
+}
+
+NAN_METHOD(FFmpeg::AVPacketWrapper::Init) {
+  NanScope();
+  AVPacketWrapper *obj = ObjectWrap::Unwrap<AVPacketWrapper>(args.This());
+  av_init_packet(obj->_this);
+  NanReturnUndefined();
+}
+
+NAN_METHOD(FFmpeg::AVPacketWrapper::Free) {
+  NanScope();
+  AVPacketWrapper *obj = ObjectWrap::Unwrap<AVPacketWrapper>(args.This());
+  av_free_packet(obj->_this);
+  NanReturnUndefined();
 }
 
 NAN_GETTER(FFmpeg::AVPacketWrapper::GetPts) {
@@ -110,13 +128,15 @@ NAN_GETTER(FFmpeg::AVPacketWrapper::GetPos) {
 
 Persistent<FunctionTemplate> FFmpeg::AVCodecContextWrapper::constructor;
 
-FFmpeg::AVCodecContextWrapper::AVCodecContextWrapper(AVCodecContext *ctx) : _this(ctx) {
-  if (!_this)
+FFmpeg::AVCodecContextWrapper::AVCodecContextWrapper(AVCodecContext *ctx) : _this(ctx), _allocated(false) {
+  if (!_this) {
     _this = (AVCodecContext *)av_mallocz(sizeof(AVCodecContext));
+    _allocated = true;
+  }
 }
 
 FFmpeg::AVCodecContextWrapper::~AVCodecContextWrapper() {
-  if (_this)
+  if (_this && _allocated)
     av_freep(&_this);
 }
 
@@ -447,13 +467,15 @@ NAN_SETTER(FFmpeg::AVCodecContextWrapper::SetLowres) {
 
 Persistent<FunctionTemplate> FFmpeg::AVCodecWrapper::constructor;
 
-FFmpeg::AVCodecWrapper::AVCodecWrapper(AVCodec *codec) : _this(codec) {
-  if (!_this)
+FFmpeg::AVCodecWrapper::AVCodecWrapper(AVCodec *codec) : _this(codec), _allocated(false) {
+  if (!_this) {
     _this = (AVCodec *)av_mallocz(sizeof(AVCodec));
+    _allocated = true;
+  }
 }
 
 FFmpeg::AVCodecWrapper::~AVCodecWrapper() {
-  if (_this)
+  if (_this && _allocated)
     av_freep(&_this);
 }
 
@@ -624,13 +646,15 @@ NAN_GETTER(FFmpeg::AVCodecWrapper::GetMaxLowres) {
 
 Persistent<FunctionTemplate> FFmpeg::AVPictureWrapper::constructor;
 
-FFmpeg::AVPictureWrapper::AVPictureWrapper(AVPicture *picture) : _this(picture) {
-  if (!_this)
+FFmpeg::AVPictureWrapper::AVPictureWrapper(AVPicture *picture) : _this(picture), _allocated(false) {
+  if (!_this) {
     _this = (AVPicture *)av_mallocz(sizeof(AVPicture));
+    _allocated = true;
+  }
 }
 
 FFmpeg::AVPictureWrapper::~AVPictureWrapper() {
-  if (_this)
+  if (_this && _allocated)
     av_freep(&_this);
 }
 
@@ -689,13 +713,15 @@ NAN_GETTER(FFmpeg::AVPictureWrapper::GetLineSize) {
 
 Persistent<FunctionTemplate> FFmpeg::AVSubtitleRectWrapper::constructor;
 
-FFmpeg::AVSubtitleRectWrapper::AVSubtitleRectWrapper(AVSubtitleRect *rect) : _this(rect) {
-  if (!_this)
+FFmpeg::AVSubtitleRectWrapper::AVSubtitleRectWrapper(AVSubtitleRect *rect) : _this(rect), _allocated(false) {
+  if (!_this) {
     _this = (AVSubtitleRect *)av_mallocz(sizeof(AVSubtitleRect));
+    _allocated = true;
+  }
 }
 
 FFmpeg::AVSubtitleRectWrapper::~AVSubtitleRectWrapper() {
-  if (_this)
+  if (_this && _allocated)
     av_freep(&_this);
 }
 
@@ -814,13 +840,15 @@ NAN_GETTER(FFmpeg::AVSubtitleRectWrapper::GetAss) {
 
 Persistent<FunctionTemplate> FFmpeg::AVSubtitleWrapper::constructor;
 
-FFmpeg::AVSubtitleWrapper::AVSubtitleWrapper(AVSubtitle *subtitle) : _this(subtitle) {
-  if (!_this)
+FFmpeg::AVSubtitleWrapper::AVSubtitleWrapper(AVSubtitle *subtitle) : _this(subtitle), _allocated(false) {
+  if (!_this) {
     _this = (AVSubtitle *)av_mallocz(sizeof(AVSubtitle));
+    _allocated = true;
+  }
 }
 
 FFmpeg::AVSubtitleWrapper::~AVSubtitleWrapper() {
-  if (_this)
+  if (_this && _allocated)
     av_freep(&_this);
 }
 

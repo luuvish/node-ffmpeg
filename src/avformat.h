@@ -31,6 +31,7 @@ namespace FFmpeg {
     explicit AVOutputFormatWrapper(AVOutputFormat *oformat=nullptr);
     virtual ~AVOutputFormatWrapper();
     AVOutputFormat *_this;
+    bool _allocated;
   };
 
   class AVInputFormatWrapper : public node::ObjectWrap {
@@ -48,6 +49,7 @@ namespace FFmpeg {
     explicit AVInputFormatWrapper(AVInputFormat *iformat=nullptr);
     virtual ~AVInputFormatWrapper();
     AVInputFormat *_this;
+    bool _allocated;
   };
 
   class AVStreamWrapper : public node::ObjectWrap {
@@ -72,6 +74,7 @@ namespace FFmpeg {
     explicit AVStreamWrapper(AVStream *stream=nullptr);
     virtual ~AVStreamWrapper();
     AVStream *_this;
+    bool _allocated;
   };
 
   class AVProgramWrapper : public node::ObjectWrap {
@@ -92,6 +95,7 @@ namespace FFmpeg {
     explicit AVProgramWrapper(AVProgram *program=nullptr);
     virtual ~AVProgramWrapper();
     AVProgram *_this;
+    bool _allocated;
   };
 
   class AVChapterWrapper : public node::ObjectWrap {
@@ -110,6 +114,7 @@ namespace FFmpeg {
     explicit AVChapterWrapper(AVChapter *chapter=nullptr);
     virtual ~AVChapterWrapper();
     AVChapter *_this;
+    bool _allocated;
   };
 
   class AVFormatContextWrapper : public node::ObjectWrap {
@@ -157,6 +162,7 @@ namespace FFmpeg {
     explicit AVFormatContextWrapper(AVFormatContext *ctx=nullptr);
     virtual ~AVFormatContextWrapper();
     AVFormatContext *_this;
+    bool _allocated;
   };
 }
 

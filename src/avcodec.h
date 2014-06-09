@@ -18,6 +18,8 @@ namespace FFmpeg {
   private:
     static v8::Persistent<v8::FunctionTemplate> constructor;
     static NAN_METHOD(New);
+    static NAN_METHOD(Init);
+    static NAN_METHOD(Free);
     static NAN_GETTER(GetPts);
     static NAN_GETTER(GetDts);
     static NAN_GETTER(GetSize);
@@ -27,6 +29,7 @@ namespace FFmpeg {
     explicit AVPacketWrapper(AVPacket *packet=nullptr);
     virtual ~AVPacketWrapper();
     AVPacket *_this;
+    bool _allocated;
   };
 
   class AVCodecContextWrapper : public node::ObjectWrap {
@@ -69,6 +72,7 @@ namespace FFmpeg {
     explicit AVCodecContextWrapper(AVCodecContext *ctx=nullptr);
     virtual ~AVCodecContextWrapper();
     AVCodecContext *_this;
+    bool _allocated;
   };
 
   class AVCodecWrapper : public node::ObjectWrap {
@@ -94,6 +98,7 @@ namespace FFmpeg {
     explicit AVCodecWrapper(AVCodec *codec=nullptr);
     virtual ~AVCodecWrapper();
     AVCodec *_this;
+    bool _allocated;
   };
 
   class AVPictureWrapper : public node::ObjectWrap {
@@ -110,6 +115,7 @@ namespace FFmpeg {
     explicit AVPictureWrapper(AVPicture *picture=nullptr);
     virtual ~AVPictureWrapper();
     AVPicture *_this;
+    bool _allocated;
   };
 
   class AVSubtitleRectWrapper : public node::ObjectWrap {
@@ -133,6 +139,7 @@ namespace FFmpeg {
     explicit AVSubtitleRectWrapper(AVSubtitleRect *rect=nullptr);
     virtual ~AVSubtitleRectWrapper();
     AVSubtitleRect *_this;
+    bool _allocated;
   };
 
   class AVSubtitleWrapper : public node::ObjectWrap {
@@ -152,6 +159,7 @@ namespace FFmpeg {
     explicit AVSubtitleWrapper(AVSubtitle *subtitle=nullptr);
     virtual ~AVSubtitleWrapper();
     AVSubtitle *_this;
+    bool _allocated;
   };
 }
 
