@@ -32,6 +32,7 @@ void FFmpeg::AVFrameWrapper::Initialize(Handle<Object> target) {
   proto->SetAccessor(NanNew<String>("linesize"), GetLinesize);
   proto->SetAccessor(NanNew<String>("width"), GetWidth);
   proto->SetAccessor(NanNew<String>("height"), GetHeight);
+  proto->SetAccessor(NanNew<String>("nb_samples"), GetNbSamples);
   proto->SetAccessor(NanNew<String>("format"), GetFormat);
   proto->SetAccessor(NanNew<String>("sample_aspect_ratio"), GetSampleAspectRatio, SetSampleAspectRatio);
   proto->SetAccessor(NanNew<String>("pts"), GetPts, SetPts);
@@ -52,8 +53,7 @@ void FFmpeg::AVFrameWrapper::Initialize(Handle<Object> target) {
   target->Set(NanNew<String>("AVFrame"), creator);
 }
 
-Handle<Value> FFmpeg::AVFrameWrapper::newInstance(AVFrame *frame)
-{
+Handle<Value> FFmpeg::AVFrameWrapper::newInstance(AVFrame *frame) {
   NanScope();
   const int argc = 1;
   Handle<Value> argv[argc] = { NanNew<External>(frame) };
@@ -90,9 +90,20 @@ NAN_GETTER(FFmpeg::AVFrameWrapper::GetData) {
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
   Handle<Array> ret = NanNew<Array>(AV_NUM_DATA_POINTERS);
   for (uint32_t i = 0; i < AV_NUM_DATA_POINTERS; i++) {
-    int size = obj->_this->linesize[i] * obj->_this->height;
-    Local<Object> buf = NanNewBufferHandle((const char *)obj->_this->data[i], size);
-    ret->Set(i, buf);
+    Local<Value> v;
+    if (obj->_this->buf[i]) {
+      char *data = reinterpret_cast<char *>(obj->_this->buf[i]->data);
+      int size = obj->_this->buf[i]->size;
+      Buffer *slowBuffer = Buffer::New(size);
+      memcpy(Buffer::Data(slowBuffer), data, size);
+      Local<Object> globalObj = Context::GetCurrent()->Global();
+      Local<Function> bufferConstructor = Local<Function>::Cast(globalObj->Get(String::New("Buffer")));
+      Handle<Value> constructorArgs[3] = { slowBuffer->handle_, Integer::New(size), Integer::New(0) };
+      v = bufferConstructor->NewInstance(3, constructorArgs);
+      //v = NanNewBufferHandle(data, size);
+    } else
+      v = NanNull();
+    ret->Set(i, v);
   }
   NanReturnValue(ret);
 }
@@ -118,6 +129,13 @@ NAN_GETTER(FFmpeg::AVFrameWrapper::GetHeight) {
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
   int height = obj->_this->height;
   NanReturnValue(NanNew<Number>(height));
+}
+
+NAN_GETTER(FFmpeg::AVFrameWrapper::GetNbSamples) {
+  NanScope();
+  AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
+  int nb_samples = obj->_this->nb_samples;
+  NanReturnValue(NanNew<Number>(nb_samples));
 }
 
 NAN_GETTER(FFmpeg::AVFrameWrapper::GetFormat) {

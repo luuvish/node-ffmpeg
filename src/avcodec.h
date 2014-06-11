@@ -104,18 +104,19 @@ namespace FFmpeg {
   class AVPictureWrapper : public node::ObjectWrap {
   public:
     static void Initialize(v8::Handle<v8::Object> target);
-    static v8::Handle<v8::Value> newInstance(AVPicture *picture=nullptr);
+    static v8::Handle<v8::Value> newInstance(AVPicture *picture=nullptr, int w=0, int h=0);
     static bool HasInstance(v8::Handle<v8::Object> obj);
     inline AVPicture *This() { return _this; }
   private:
     static v8::Persistent<v8::FunctionTemplate> constructor;
     static NAN_METHOD(New);
     static NAN_GETTER(GetData);
-    static NAN_GETTER(GetLineSize);
-    explicit AVPictureWrapper(AVPicture *picture=nullptr);
+    static NAN_GETTER(GetLinesize);
+    explicit AVPictureWrapper(AVPicture *picture=nullptr, int w=0, int h=0);
     virtual ~AVPictureWrapper();
     AVPicture *_this;
     bool _allocated;
+    int _w, _h;
   };
 
   class AVSubtitleRectWrapper : public node::ObjectWrap {
@@ -151,6 +152,7 @@ namespace FFmpeg {
   private:
     static v8::Persistent<v8::FunctionTemplate> constructor;
     static NAN_METHOD(New);
+    static NAN_METHOD(Free);
     static NAN_GETTER(GetFormat);
     static NAN_GETTER(GetStartDisplayTime);
     static NAN_GETTER(GetEndDisplayTime);

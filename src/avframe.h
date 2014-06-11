@@ -10,7 +10,6 @@ extern "C" {
 
 namespace FFmpeg {
   class AVFrameWrapper : public node::ObjectWrap {
-  friend class AVFormatContextWrapper;
   public:
     static void Initialize(v8::Handle<v8::Object> target);
     static v8::Handle<v8::Value> newInstance(AVFrame *frame=nullptr);
@@ -24,6 +23,7 @@ namespace FFmpeg {
     static NAN_GETTER(GetLinesize);
     static NAN_GETTER(GetWidth);
     static NAN_GETTER(GetHeight);
+    static NAN_GETTER(GetNbSamples);
     static NAN_GETTER(GetFormat);
     static NAN_GETTER(GetSampleAspectRatio);
     static NAN_GETTER(GetPts);

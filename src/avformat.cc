@@ -44,8 +44,7 @@ void FFmpeg::AVOutputFormatWrapper::Initialize(Handle<Object> target) {
   NODE_SET_METHOD(creator, "queryCodec", QueryCodec);
 }
 
-Handle<Value> FFmpeg::AVOutputFormatWrapper::newInstance(AVOutputFormat *oformat)
-{
+Handle<Value> FFmpeg::AVOutputFormatWrapper::newInstance(AVOutputFormat *oformat) {
   NanScope();
   const int argc = 1;
   Handle<Value> argv[argc] = { NanNew<External>(oformat) };
@@ -207,8 +206,7 @@ void FFmpeg::AVInputFormatWrapper::Initialize(Handle<Object> target) {
   NODE_SET_METHOD(creator, "findInputFormat", FindInputFormat);
 }
 
-Handle<Value> FFmpeg::AVInputFormatWrapper::newInstance(AVInputFormat *iformat)
-{
+Handle<Value> FFmpeg::AVInputFormatWrapper::newInstance(AVInputFormat *iformat) {
   NanScope();
   const int argc = 1;
   Handle<Value> argv[argc] = { NanNew<External>(iformat) };
@@ -300,8 +298,7 @@ void FFmpeg::AVStreamWrapper::Initialize(Handle<Object> target) {
   target->Set(NanNew<String>("AVStream"), creator);
 }
 
-Handle<Value> FFmpeg::AVStreamWrapper::newInstance(AVStream *stream)
-{
+Handle<Value> FFmpeg::AVStreamWrapper::newInstance(AVStream *stream) {
   NanScope();
   const int argc = 1;
   Handle<Value> argv[argc] = { NanNew<External>(stream) };
@@ -442,8 +439,7 @@ void FFmpeg::AVProgramWrapper::Initialize(Handle<Object> target) {
   target->Set(NanNew<String>("AVProgram"), creator);
 }
 
-Handle<Value> FFmpeg::AVProgramWrapper::newInstance(AVProgram *program)
-{
+Handle<Value> FFmpeg::AVProgramWrapper::newInstance(AVProgram *program) {
   NanScope();
   const int argc = 1;
   Handle<Value> argv[argc] = { NanNew<External>(program) };
@@ -545,8 +541,7 @@ void FFmpeg::AVChapterWrapper::Initialize(Handle<Object> target) {
   target->Set(NanNew<String>("AVChapter"), creator);
 }
 
-Handle<Value> FFmpeg::AVChapterWrapper::newInstance(AVChapter *chapter)
-{
+Handle<Value> FFmpeg::AVChapterWrapper::newInstance(AVChapter *chapter) {
   NanScope();
   const int argc = 1;
   Handle<Value> argv[argc] = { NanNew<External>(chapter) };
@@ -661,8 +656,7 @@ void FFmpeg::AVFormatContextWrapper::Initialize(Handle<Object> target) {
   target->Set(NanNew<String>("AVFormatContext"), creator);
 }
 
-Handle<Value> FFmpeg::AVFormatContextWrapper::newInstance(AVFormatContext *ctx)
-{
+Handle<Value> FFmpeg::AVFormatContextWrapper::newInstance(AVFormatContext *ctx) {
   NanScope();
   const int argc = 1;
   Handle<Value> argv[argc] = { NanNew<External>(ctx) };
@@ -779,7 +773,7 @@ NAN_METHOD(FFmpeg::AVFormatContextWrapper::FindProgramFromStream) {
   AVProgram *last = nullptr;
   if (args[0]->IsObject()) {
     if (!AVProgramWrapper::HasInstance(args[0]->ToObject()))
-      return NanThrowTypeError("media type, wanted_stream_nb, related_stream, flags required");
+      return NanThrowTypeError("program required");
     last = ObjectWrap::Unwrap<AVProgramWrapper>(args[0]->ToObject())->This();
   }
   if (!args[1]->IsNumber())
