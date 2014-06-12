@@ -1,24 +1,139 @@
-#include "avframe.h"
+#include "avutil.h"
 
 using namespace node;
 using namespace v8;
 
 
-Persistent<FunctionTemplate> FFmpeg::AVFrameWrapper::constructor;
+void FFmpeg::AVUtil::Initialize(Handle<Object> target) {
+  NanScope();
 
-FFmpeg::AVFrameWrapper::AVFrameWrapper(AVFrame *frame) : _this(frame), _allocated(false) {
+  AVFrameWrapper::Initialize(target);
+
+  // libavutil/avutil.h
+  target->Set(NanNew<String>("AVMEDIA_TYPE_UNKNOWN"), NanNew<Number>(::AVMEDIA_TYPE_UNKNOWN));
+  target->Set(NanNew<String>("AVMEDIA_TYPE_VIDEO"), NanNew<Number>(::AVMEDIA_TYPE_VIDEO));
+  target->Set(NanNew<String>("AVMEDIA_TYPE_AUDIO"), NanNew<Number>(::AVMEDIA_TYPE_AUDIO));
+  target->Set(NanNew<String>("AVMEDIA_TYPE_DATA"), NanNew<Number>(::AVMEDIA_TYPE_DATA));
+  target->Set(NanNew<String>("AVMEDIA_TYPE_SUBTITLE"), NanNew<Number>(::AVMEDIA_TYPE_SUBTITLE));
+  target->Set(NanNew<String>("AVMEDIA_TYPE_ATTACHMENT"), NanNew<Number>(::AVMEDIA_TYPE_ATTACHMENT));
+
+  target->Set(NanNew<String>("AV_NOPTS_VALUE"), NanNew<Number>(AV_NOPTS_VALUE));
+  target->Set(NanNew<String>("AV_TIME_BASE"), NanNew<Number>(AV_TIME_BASE));
+  Handle<Object> time_base_q = NanNew<Object>();
+  time_base_q->Set(NanNew<String>("num"), NanNew<Number>(1));
+  time_base_q->Set(NanNew<String>("den"), NanNew<Number>(AV_TIME_BASE));
+  target->Set(NanNew<String>("AV_TIME_BASE_Q"), time_base_q);
+
+  // libavutil/channel_layout.h
+  NODE_SET_METHOD(target, "getChannelLayoutNbChannels", GetChannelLayoutNbChannels);
+  NODE_SET_METHOD(target, "getDefaultChannelLayout", GetDefaultChannelLayout);
+
+  // libavutil/samplefmt.h
+  target->Set(NanNew<String>("AV_SAMPLE_FMT_NONE"), NanNew<Number>(::AV_SAMPLE_FMT_NONE));
+  target->Set(NanNew<String>("AV_SAMPLE_FMT_U8"), NanNew<Number>(::AV_SAMPLE_FMT_U8));
+  target->Set(NanNew<String>("AV_SAMPLE_FMT_S16"), NanNew<Number>(::AV_SAMPLE_FMT_S16));
+  target->Set(NanNew<String>("AV_SAMPLE_FMT_S32"), NanNew<Number>(::AV_SAMPLE_FMT_S32));
+  target->Set(NanNew<String>("AV_SAMPLE_FMT_FLT"), NanNew<Number>(::AV_SAMPLE_FMT_FLT));
+  target->Set(NanNew<String>("AV_SAMPLE_FMT_DBL"), NanNew<Number>(::AV_SAMPLE_FMT_DBL));
+  target->Set(NanNew<String>("AV_SAMPLE_FMT_U8P"), NanNew<Number>(::AV_SAMPLE_FMT_U8P));
+  target->Set(NanNew<String>("AV_SAMPLE_FMT_S16P"), NanNew<Number>(::AV_SAMPLE_FMT_S16P));
+  target->Set(NanNew<String>("AV_SAMPLE_FMT_S32P"), NanNew<Number>(::AV_SAMPLE_FMT_S32P));
+  target->Set(NanNew<String>("AV_SAMPLE_FMT_FLTP"), NanNew<Number>(::AV_SAMPLE_FMT_FLTP));
+  target->Set(NanNew<String>("AV_SAMPLE_FMT_DBLP"), NanNew<Number>(::AV_SAMPLE_FMT_DBLP));
+
+  NODE_SET_METHOD(target, "getPackedSampleFmt", GetPackedSampleFmt);
+  NODE_SET_METHOD(target, "getPlanerSampleFmt", GetPlanarSampleFmt);
+  NODE_SET_METHOD(target, "getBytesPerSample", GetBytesPerSample);
+  NODE_SET_METHOD(target, "getSamplesBufferSize", GetSamplesBufferSize);
+}
+
+NAN_METHOD(FFmpeg::AVUtil::GetChannelLayoutNbChannels) {
+  NanScope();
+  if (!args[0]->IsNumber())
+    return NanThrowTypeError("channel_layout required");
+  uint64_t channel_layout = args[0]->NumberValue();
+  int ret = av_get_channel_layout_nb_channels(channel_layout);
+  NanReturnValue(NanNew<Number>(ret));
+}
+
+NAN_METHOD(FFmpeg::AVUtil::GetDefaultChannelLayout) {
+  NanScope();
+  if (!args[0]->IsNumber())
+    return NanThrowTypeError("nb_channels required");
+  int nb_channels = args[0]->Int32Value();
+  int64_t ret = av_get_default_channel_layout(nb_channels);
+  NanReturnValue(NanNew<Number>(ret));
+}
+
+NAN_METHOD(FFmpeg::AVUtil::GetPackedSampleFmt) {
+  NanScope();
+  if (!args[0]->IsNumber())
+    return NanThrowTypeError("sample_fmt required");
+  enum ::AVSampleFormat sample_fmt = static_cast<enum ::AVSampleFormat>(args[0]->NumberValue());
+  enum ::AVSampleFormat ret = av_get_packed_sample_fmt(sample_fmt);
+  NanReturnValue(NanNew<Number>(ret));
+}
+
+NAN_METHOD(FFmpeg::AVUtil::GetPlanarSampleFmt) {
+  NanScope();
+  if (!args[0]->IsNumber())
+    return NanThrowTypeError("sample_fmt required");
+  enum ::AVSampleFormat sample_fmt = static_cast<enum ::AVSampleFormat>(args[0]->NumberValue());
+  enum ::AVSampleFormat ret = av_get_planar_sample_fmt(sample_fmt);
+  NanReturnValue(NanNew<Number>(ret));
+}
+
+NAN_METHOD(FFmpeg::AVUtil::GetBytesPerSample) {
+  NanScope();
+  if (!args[0]->IsNumber())
+    return NanThrowTypeError("sample_fmt required");
+  enum ::AVSampleFormat sample_fmt = static_cast<enum ::AVSampleFormat>(args[0]->NumberValue());
+  int ret = av_get_bytes_per_sample(sample_fmt);
+  NanReturnValue(NanNew<Number>(ret));
+}
+
+NAN_METHOD(FFmpeg::AVUtil::GetSamplesBufferSize) {
+  NanScope();
+
+  int *linesize = nullptr;
+  if (!args[0]->IsUndefined() && !args[0]->IsNull() && !args[0]->IsArray())
+    return NanThrowTypeError("linesize required");
+  if (args[0]->IsArray()) {
+    Local<Object> arg0 = args[0]->ToObject();
+    int length = arg0->Get(NanNew("length"))->ToObject()->Uint32Value();
+    linesize = (int *)av_mallocz(length * sizeof(int));
+    for (int i = 0; i < length; i++)
+      linesize[i] = arg0->Get(i)->Int32Value();
+  }
+
+  if (!args[1]->IsNumber() || !args[2]->IsNumber() || !args[3]->IsNumber() || !args[4]->IsNumber())
+    return NanThrowTypeError("nb_channels, nb_samples, sample_fmt, align required");
+  int nb_channels = args[1]->Int32Value();
+  int nb_samples = args[2]->Int32Value();
+  enum ::AVSampleFormat sample_fmt = static_cast<enum ::AVSampleFormat>(args[3]->NumberValue());
+  int align = args[4]->Int32Value();
+
+  int ret = av_samples_get_buffer_size(linesize, nb_channels, nb_samples, sample_fmt, align);
+  av_freep(&linesize);
+  NanReturnValue(NanNew<Number>(ret));
+}
+
+
+Persistent<FunctionTemplate> FFmpeg::AVUtil::AVFrameWrapper::constructor;
+
+FFmpeg::AVUtil::AVFrameWrapper::AVFrameWrapper(::AVFrame *frame) : _this(frame), _allocated(false) {
   if (!_this) {
     _this = av_frame_alloc();
     _allocated = true;
   }
 }
 
-FFmpeg::AVFrameWrapper::~AVFrameWrapper() {
+FFmpeg::AVUtil::AVFrameWrapper::~AVFrameWrapper() {
   if (_this && _allocated)
     av_frame_free(&_this);
 }
 
-void FFmpeg::AVFrameWrapper::Initialize(Handle<Object> target) {
+void FFmpeg::AVUtil::AVFrameWrapper::Initialize(Handle<Object> target) {
   NanScope();
 
   Local<FunctionTemplate> ctor = NanNew<FunctionTemplate>(New);
@@ -53,23 +168,23 @@ void FFmpeg::AVFrameWrapper::Initialize(Handle<Object> target) {
   target->Set(NanNew<String>("AVFrame"), creator);
 }
 
-Handle<Value> FFmpeg::AVFrameWrapper::newInstance(AVFrame *frame) {
+Handle<Value> FFmpeg::AVUtil::AVFrameWrapper::newInstance(::AVFrame *frame) {
   NanScope();
   const int argc = 1;
   Handle<Value> argv[argc] = { NanNew<External>(frame) };
   NanReturnValue(constructor->GetFunction()->NewInstance(argc, argv));
 }
 
-bool FFmpeg::AVFrameWrapper::HasInstance(Handle<Object> obj) {
+bool FFmpeg::AVUtil::AVFrameWrapper::HasInstance(Handle<Object> obj) {
   return NanHasInstance(constructor, obj);
 }
 
-NAN_METHOD(FFmpeg::AVFrameWrapper::New) {
+NAN_METHOD(FFmpeg::AVUtil::AVFrameWrapper::New) {
   if (args.IsConstructCall()) {
     NanScope();
-    AVFrame *frame = nullptr;
+    ::AVFrame *frame = nullptr;
     if (args[0]->IsExternal())
-      frame = static_cast<AVFrame *>(External::Unwrap(args[0]));
+      frame = static_cast<::AVFrame *>(External::Unwrap(args[0]));
     AVFrameWrapper *obj = new AVFrameWrapper(frame);
     obj->Wrap(args.This());
     NanReturnValue(args.This());
@@ -78,14 +193,14 @@ NAN_METHOD(FFmpeg::AVFrameWrapper::New) {
   NanReturnValue(constructor->GetFunction()->NewInstance());
 }
 
-NAN_METHOD(FFmpeg::AVFrameWrapper::Unref) {
+NAN_METHOD(FFmpeg::AVUtil::AVFrameWrapper::Unref) {
   NanScope();
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
   av_frame_unref(obj->_this);
   NanReturnUndefined();
 }
 
-NAN_GETTER(FFmpeg::AVFrameWrapper::GetData) {
+NAN_GETTER(FFmpeg::AVUtil::AVFrameWrapper::GetData) {
   NanScope();
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
   Handle<Array> ret = NanNew<Array>(AV_NUM_DATA_POINTERS);
@@ -100,7 +215,12 @@ NAN_GETTER(FFmpeg::AVFrameWrapper::GetData) {
       Local<Function> bufferConstructor = Local<Function>::Cast(globalObj->Get(String::New("Buffer")));
       Handle<Value> constructorArgs[3] = { slowBuffer->handle_, Integer::New(size), Integer::New(0) };
       v = bufferConstructor->NewInstance(3, constructorArgs);
-      //v = NanNewBufferHandle(data, size);
+      //Local<Object> buffer = NanNewBufferHandle(data, size);
+      //Local<Object> arrayBuffer = Shell::CreateExternalArrayBuffer(size);
+      //Local<Object> buffer = arrayBuffer->Get(String::New("buffer"))->ToObject();
+      //memcpy(buffer->GetIndexedPropertiesExternalArrayData(), data, size);
+      //Arguments args = new Arguments(1, &[arrayBuffer]);
+      //Local<Object> nativeArray = Shell::Uint8Array(args);
     } else
       v = NanNull();
     ret->Set(i, v);
@@ -108,7 +228,7 @@ NAN_GETTER(FFmpeg::AVFrameWrapper::GetData) {
   NanReturnValue(ret);
 }
 
-NAN_GETTER(FFmpeg::AVFrameWrapper::GetLinesize) {
+NAN_GETTER(FFmpeg::AVUtil::AVFrameWrapper::GetLinesize) {
   NanScope();
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
   Handle<Array> ret = NanNew<Array>(AV_NUM_DATA_POINTERS);
@@ -117,143 +237,143 @@ NAN_GETTER(FFmpeg::AVFrameWrapper::GetLinesize) {
   NanReturnValue(ret);
 }
 
-NAN_GETTER(FFmpeg::AVFrameWrapper::GetWidth) {
+NAN_GETTER(FFmpeg::AVUtil::AVFrameWrapper::GetWidth) {
   NanScope();
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
   int width = obj->_this->width;
   NanReturnValue(NanNew<Number>(width));
 }
 
-NAN_GETTER(FFmpeg::AVFrameWrapper::GetHeight) {
+NAN_GETTER(FFmpeg::AVUtil::AVFrameWrapper::GetHeight) {
   NanScope();
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
   int height = obj->_this->height;
   NanReturnValue(NanNew<Number>(height));
 }
 
-NAN_GETTER(FFmpeg::AVFrameWrapper::GetNbSamples) {
+NAN_GETTER(FFmpeg::AVUtil::AVFrameWrapper::GetNbSamples) {
   NanScope();
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
   int nb_samples = obj->_this->nb_samples;
   NanReturnValue(NanNew<Number>(nb_samples));
 }
 
-NAN_GETTER(FFmpeg::AVFrameWrapper::GetFormat) {
+NAN_GETTER(FFmpeg::AVUtil::AVFrameWrapper::GetFormat) {
   NanScope();
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
   int format = obj->_this->format;
   NanReturnValue(NanNew<Number>(format));
 }
 
-NAN_GETTER(FFmpeg::AVFrameWrapper::GetSampleAspectRatio) {
+NAN_GETTER(FFmpeg::AVUtil::AVFrameWrapper::GetSampleAspectRatio) {
   NanScope();
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
-  AVRational sample_aspect_ratio = obj->_this->sample_aspect_ratio;
+  ::AVRational sample_aspect_ratio = obj->_this->sample_aspect_ratio;
   Handle<Object> ret = NanNew<Object>();
   ret->Set(NanNew<String>("num"), NanNew<Number>(sample_aspect_ratio.num));
   ret->Set(NanNew<String>("den"), NanNew<Number>(sample_aspect_ratio.den));
   NanReturnValue(ret);
 }
 
-NAN_GETTER(FFmpeg::AVFrameWrapper::GetPts) {
+NAN_GETTER(FFmpeg::AVUtil::AVFrameWrapper::GetPts) {
   NanScope();
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
   int64_t pts = obj->_this->pts;
   NanReturnValue(NanNew<Number>(pts));
 }
 
-NAN_GETTER(FFmpeg::AVFrameWrapper::GetPktPts) {
+NAN_GETTER(FFmpeg::AVUtil::AVFrameWrapper::GetPktPts) {
   NanScope();
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
   int64_t pkt_pts = obj->_this->pkt_pts;
   NanReturnValue(NanNew<Number>(pkt_pts));
 }
 
-NAN_GETTER(FFmpeg::AVFrameWrapper::GetPktDts) {
+NAN_GETTER(FFmpeg::AVUtil::AVFrameWrapper::GetPktDts) {
   NanScope();
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
   int64_t pkt_dts = obj->_this->pkt_dts;
   NanReturnValue(NanNew<Number>(pkt_dts));
 }
 
-NAN_GETTER(FFmpeg::AVFrameWrapper::GetBestEffortTimestamp) {
+NAN_GETTER(FFmpeg::AVUtil::AVFrameWrapper::GetBestEffortTimestamp) {
   NanScope();
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
   int64_t best_effort_timestamp = av_frame_get_best_effort_timestamp(obj->_this);
   NanReturnValue(NanNew<Number>(best_effort_timestamp));
 }
 
-NAN_GETTER(FFmpeg::AVFrameWrapper::GetPktDuration) {
+NAN_GETTER(FFmpeg::AVUtil::AVFrameWrapper::GetPktDuration) {
   NanScope();
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
   int64_t pkt_duration = av_frame_get_pkt_duration(obj->_this);
   NanReturnValue(NanNew<Number>(pkt_duration));
 }
 
-NAN_GETTER(FFmpeg::AVFrameWrapper::GetPktPos) {
+NAN_GETTER(FFmpeg::AVUtil::AVFrameWrapper::GetPktPos) {
   NanScope();
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
   int64_t pkt_pos = av_frame_get_pkt_pos(obj->_this);
   NanReturnValue(NanNew<Number>(pkt_pos));
 }
 
-NAN_GETTER(FFmpeg::AVFrameWrapper::GetChannelLayout) {
+NAN_GETTER(FFmpeg::AVUtil::AVFrameWrapper::GetChannelLayout) {
   NanScope();
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
   int64_t channel_layout = av_frame_get_channel_layout(obj->_this);
   NanReturnValue(NanNew<Number>(channel_layout));
 }
 
-NAN_GETTER(FFmpeg::AVFrameWrapper::GetChannels) {
+NAN_GETTER(FFmpeg::AVUtil::AVFrameWrapper::GetChannels) {
   NanScope();
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
   int channels = av_frame_get_channels(obj->_this);
   NanReturnValue(NanNew<Number>(channels));
 }
 
-NAN_GETTER(FFmpeg::AVFrameWrapper::GetSampleRate) {
+NAN_GETTER(FFmpeg::AVUtil::AVFrameWrapper::GetSampleRate) {
   NanScope();
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
   int sample_rate = av_frame_get_sample_rate(obj->_this);
   NanReturnValue(NanNew<Number>(sample_rate));
 }
 
-NAN_GETTER(FFmpeg::AVFrameWrapper::GetDecodeErrorFlags) {
+NAN_GETTER(FFmpeg::AVUtil::AVFrameWrapper::GetDecodeErrorFlags) {
   NanScope();
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
   int decode_error_flags = av_frame_get_decode_error_flags(obj->_this);
   NanReturnValue(NanNew<Number>(decode_error_flags));
 }
 
-NAN_GETTER(FFmpeg::AVFrameWrapper::GetPktSize) {
+NAN_GETTER(FFmpeg::AVUtil::AVFrameWrapper::GetPktSize) {
   NanScope();
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
   int pkt_size = av_frame_get_pkt_size(obj->_this);
   NanReturnValue(NanNew<Number>(pkt_size));
 }
 
-NAN_GETTER(FFmpeg::AVFrameWrapper::GetColorspace) {
+NAN_GETTER(FFmpeg::AVUtil::AVFrameWrapper::GetColorspace) {
   NanScope();
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
-  enum AVColorSpace colorspace = av_frame_get_colorspace(obj->_this);
+  enum ::AVColorSpace colorspace = av_frame_get_colorspace(obj->_this);
   NanReturnValue(NanNew<Number>(colorspace));
 }
 
-NAN_GETTER(FFmpeg::AVFrameWrapper::GetColorRange) {
+NAN_GETTER(FFmpeg::AVUtil::AVFrameWrapper::GetColorRange) {
   NanScope();
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
-  enum AVColorRange color_range = av_frame_get_color_range(obj->_this);
+  enum ::AVColorRange color_range = av_frame_get_color_range(obj->_this);
   NanReturnValue(NanNew<Number>(color_range));
 }
 
-NAN_SETTER(FFmpeg::AVFrameWrapper::SetSampleAspectRatio) {
+NAN_SETTER(FFmpeg::AVUtil::AVFrameWrapper::SetSampleAspectRatio) {
   NanScope();
   if (!value->IsObject())
     NanThrowTypeError("sample_aspect_ratio required");
   Local<Object> sar = value->ToObject();
   if (!sar->HasOwnProperty(NanNew<String>("num")) || !sar->HasOwnProperty(NanNew<String>("den")))
     NanThrowTypeError("sample_aspect_ratio required");
-  AVRational sample_aspect_ratio = {
+  ::AVRational sample_aspect_ratio = {
     .num = sar->Get(NanNew<String>("num"))->Int32Value(),
     .den = sar->Get(NanNew<String>("den"))->Int32Value()
   };
@@ -261,7 +381,7 @@ NAN_SETTER(FFmpeg::AVFrameWrapper::SetSampleAspectRatio) {
   obj->_this->sample_aspect_ratio = sample_aspect_ratio;
 }
 
-NAN_SETTER(FFmpeg::AVFrameWrapper::SetPts) {
+NAN_SETTER(FFmpeg::AVUtil::AVFrameWrapper::SetPts) {
   NanScope();
   if (!value->IsNumber())
     NanThrowTypeError("pts required");
@@ -270,7 +390,7 @@ NAN_SETTER(FFmpeg::AVFrameWrapper::SetPts) {
   obj->_this->pts = pts;
 }
 
-NAN_SETTER(FFmpeg::AVFrameWrapper::SetBestEffortTimestamp) {
+NAN_SETTER(FFmpeg::AVUtil::AVFrameWrapper::SetBestEffortTimestamp) {
   NanScope();
   if (!value->IsNumber())
     NanThrowTypeError("best_effort_timestamp required");
@@ -279,7 +399,7 @@ NAN_SETTER(FFmpeg::AVFrameWrapper::SetBestEffortTimestamp) {
   av_frame_set_best_effort_timestamp(obj->_this, best_effort_timestamp);
 }
 
-NAN_SETTER(FFmpeg::AVFrameWrapper::SetPktDuration) {
+NAN_SETTER(FFmpeg::AVUtil::AVFrameWrapper::SetPktDuration) {
   NanScope();
   if (!value->IsNumber())
     NanThrowTypeError("pkt_duration required");
@@ -288,7 +408,7 @@ NAN_SETTER(FFmpeg::AVFrameWrapper::SetPktDuration) {
   av_frame_set_pkt_duration(obj->_this, pkt_duration);
 }
 
-NAN_SETTER(FFmpeg::AVFrameWrapper::SetPktPos) {
+NAN_SETTER(FFmpeg::AVUtil::AVFrameWrapper::SetPktPos) {
   NanScope();
   if (!value->IsNumber())
     NanThrowTypeError("pkt_pos required");
@@ -297,7 +417,7 @@ NAN_SETTER(FFmpeg::AVFrameWrapper::SetPktPos) {
   av_frame_set_pkt_pos(obj->_this, pkt_pos);
 }
 
-NAN_SETTER(FFmpeg::AVFrameWrapper::SetChannelLayout) {
+NAN_SETTER(FFmpeg::AVUtil::AVFrameWrapper::SetChannelLayout) {
   NanScope();
   if (!value->IsNumber())
     NanThrowTypeError("channel_layout required");
@@ -306,7 +426,7 @@ NAN_SETTER(FFmpeg::AVFrameWrapper::SetChannelLayout) {
   av_frame_set_channel_layout(obj->_this, channel_layout);
 }
 
-NAN_SETTER(FFmpeg::AVFrameWrapper::SetChannels) {
+NAN_SETTER(FFmpeg::AVUtil::AVFrameWrapper::SetChannels) {
   NanScope();
   if (!value->IsNumber())
     NanThrowTypeError("channels required");
@@ -315,7 +435,7 @@ NAN_SETTER(FFmpeg::AVFrameWrapper::SetChannels) {
   av_frame_set_channels(obj->_this, channels);
 }
 
-NAN_SETTER(FFmpeg::AVFrameWrapper::SetSampleRate) {
+NAN_SETTER(FFmpeg::AVUtil::AVFrameWrapper::SetSampleRate) {
   NanScope();
   if (!value->IsNumber())
     NanThrowTypeError("sample_rate required");
@@ -324,7 +444,7 @@ NAN_SETTER(FFmpeg::AVFrameWrapper::SetSampleRate) {
   av_frame_set_sample_rate(obj->_this, sample_rate);
 }
 
-NAN_SETTER(FFmpeg::AVFrameWrapper::SetDecodeErrorFlags) {
+NAN_SETTER(FFmpeg::AVUtil::AVFrameWrapper::SetDecodeErrorFlags) {
   NanScope();
   if (!value->IsNumber())
     NanThrowTypeError("decode_error_flags required");
@@ -333,7 +453,7 @@ NAN_SETTER(FFmpeg::AVFrameWrapper::SetDecodeErrorFlags) {
   av_frame_set_decode_error_flags(obj->_this, decode_error_flags);
 }
 
-NAN_SETTER(FFmpeg::AVFrameWrapper::SetPktSize) {
+NAN_SETTER(FFmpeg::AVUtil::AVFrameWrapper::SetPktSize) {
   NanScope();
   if (!value->IsNumber())
     NanThrowTypeError("pkt_size required");
@@ -342,20 +462,20 @@ NAN_SETTER(FFmpeg::AVFrameWrapper::SetPktSize) {
   av_frame_set_pkt_size(obj->_this, pkt_size);
 }
 
-NAN_SETTER(FFmpeg::AVFrameWrapper::SetColorspace) {
+NAN_SETTER(FFmpeg::AVUtil::AVFrameWrapper::SetColorspace) {
   NanScope();
   if (!value->IsNumber())
     NanThrowTypeError("colorspace required");
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
-  enum AVColorSpace colorspace = static_cast<enum AVColorSpace>(value->Uint32Value());
+  enum ::AVColorSpace colorspace = static_cast<enum ::AVColorSpace>(value->Uint32Value());
   av_frame_set_colorspace(obj->_this, colorspace);
 }
 
-NAN_SETTER(FFmpeg::AVFrameWrapper::SetColorRange) {
+NAN_SETTER(FFmpeg::AVUtil::AVFrameWrapper::SetColorRange) {
   NanScope();
   if (!value->IsNumber())
     NanThrowTypeError("color_range required");
   AVFrameWrapper *obj = ObjectWrap::Unwrap<AVFrameWrapper>(args.This());
-  enum AVColorRange color_range = static_cast<enum AVColorRange>(value->Uint32Value());
+  enum ::AVColorRange color_range = static_cast<enum ::AVColorRange>(value->Uint32Value());
   av_frame_set_color_range(obj->_this, color_range);
 }

@@ -12,7 +12,7 @@
       'sources': [
         'src/avformat.cc',
         'src/avcodec.cc',
-        'src/avframe.cc',
+        'src/avutil.cc',
         'src/ffmpeg.cc'
       ],
       'include_dirs': [
