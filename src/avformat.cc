@@ -442,7 +442,7 @@ void FFmpeg::AVFormat::AVProgramWrapper::Initialize(Handle<Object> target) {
   Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
   proto->SetAccessor(NanNew<String>("id"), GetId);
   proto->SetAccessor(NanNew<String>("discard"), GetDiscard);
-  proto->SetAccessor(NanNew<String>("stream_index"), GetStreamIndex);
+  proto->SetAccessor(NanNew<String>("stream_indexes"), GetStreamIndexes);
   proto->SetAccessor(NanNew<String>("program_num"), GetProgramNum);
   proto->SetAccessor(NanNew<String>("start_time"), GetStartTime);
   proto->SetAccessor(NanNew<String>("end_time"), GetEndTime);
@@ -490,7 +490,7 @@ NAN_GETTER(FFmpeg::AVFormat::AVProgramWrapper::GetDiscard) {
   NanReturnValue(NanNew<Number>(discard));
 }
 
-NAN_GETTER(FFmpeg::AVFormat::AVProgramWrapper::GetStreamIndex) {
+NAN_GETTER(FFmpeg::AVFormat::AVProgramWrapper::GetStreamIndexes) {
   NanScope();
   AVProgramWrapper *obj = ObjectWrap::Unwrap<AVProgramWrapper>(args.This());
   Handle<Array> stream_indexes = NanNew<Array>(obj->_this->nb_stream_indexes);

@@ -92,7 +92,7 @@ namespace FFmpeg {
       static NAN_METHOD(New);
       static NAN_GETTER(GetId);
       static NAN_GETTER(GetDiscard);
-      static NAN_GETTER(GetStreamIndex);
+      static NAN_GETTER(GetStreamIndexes);
       static NAN_GETTER(GetProgramNum);
       static NAN_GETTER(GetStartTime);
       static NAN_GETTER(GetEndTime);
