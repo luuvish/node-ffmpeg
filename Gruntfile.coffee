@@ -6,9 +6,22 @@ module.exports = (grunt) ->
       glob_to_multiple:
         expand: true
         cwd: 'src'
-        src: ['*.coffee']
+        src: ['**/*.coffee']
         dest: 'lib'
         ext: '.js'
+
+    coffeelint:
+      options:
+        no_empty_param_list:
+          level: 'error'
+        max_line_length:
+          level: 'ignore'
+        indentation:
+          level: 'ignore'
+
+      src: ['src/**/*.coffee']
+      test: ['spec/**/*.coffee']
+      gruntfile: ['Gruntfile.coffee']
 
     cpplint:
       files: ['src/**/*.cc']
@@ -45,18 +58,12 @@ module.exports = (grunt) ->
           stderr: true
           failOnError: true
 
-    coffeelint:
-      options:
-        max_line_length:
-          level: 'ignore'
-
-      src: ['src/**/*.coffee']
-
   grunt.loadNpmTasks 'grunt-contrib-coffee'
   grunt.loadNpmTasks 'grunt-shell'
   grunt.loadNpmTasks 'grunt-coffeelint'
   grunt.loadNpmTasks 'node-cpplint'
 
-  grunt.registerTask 'default', ['coffee', 'cpplint', 'shell:rebuild']
-  grunt.registerTask 'test', ['default', 'shell:test']
+  grunt.registerTask 'default', ['coffee', 'lint', 'shell:rebuild']
+  grunt.registerTask 'lint', ['coffeelint', 'cpplint']
+  grunt.registerTask 'test', ['coffee', 'lint', 'shell:test']
   grunt.registerTask 'clean', ['shell:clean']

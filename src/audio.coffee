@@ -1,7 +1,7 @@
 
 FFmpeg = require './ffmpeg'
 
-
+module.exports =
 class Audio
   constructor: (@format) ->
     @options = @format.options
@@ -57,8 +57,8 @@ class Audio
       break if stream.codec.codec_type is FFmpeg.AVMEDIA_TYPE_AUDIO and
                stream.codec.sample_rate isnt 0 and stream.codec.channels isnt 0
 
-    @.close()
-    @.open @format.context.streams[if program? then program.stream_indexes[index] else index]
+    @close()
+    @open @format.context.streams[if program? then program.stream_indexes[index] else index]
 
     console.log "audio.channel() #{@index} -> #{index}"
 
@@ -81,17 +81,12 @@ class Audio
       data = frame.data[0]
       size = FFmpeg.getSamplesBufferSize null, frame.channels, frame.nb_samples, frame.format, 1
 
-      console.log [
-        "##audio { "
-          "pts: #{frame.pts}, "
-          "format: #{frame.format}, "
-          "channels: #{frame.channels}, "
-          "sample_rate: #{frame.sample_rate}, "
-          "nb_samples: #{frame.nb_samples} "
-        "}"
-      ].join ''
+      console.log " #audio {
+        pts: #{frame.pts},
+        format: #{frame.format},
+        channels: #{frame.channels},
+        sample_rate: #{frame.sample_rate},
+        nb_samples: #{frame.nb_samples}
+      }"
 
       frame.unref()
-
-
-module.exports = Audio

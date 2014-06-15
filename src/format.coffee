@@ -1,7 +1,7 @@
 
 FFmpeg = require './ffmpeg'
 
-
+module.exports =
 class Format
   constructor: (@options) ->
     @context = new FFmpeg.AVFormatContext
@@ -66,16 +66,11 @@ class Format
 
     return if @context.readFrame(packet) < 0
 
-    console.log [
-      "#packet { "
-        "stream_index: #{packet.stream_index}, "
-        "pts: #{packet.pts}, "
-        "dts: #{packet.dts}, "
-        "size: #{packet.size}, "
-        "duration: #{packet.duration}, "
-        "pos: #{packet.pos} "
-      "}"
-    ].join ''
-
-
-module.exports = Format
+    console.log "#packet {
+      stream_index: #{packet.stream_index},
+      pts: #{packet.pts},
+      dts: #{packet.dts},
+      size: #{packet.size},
+      duration: #{packet.duration},
+      pos: #{packet.pos}
+    }"

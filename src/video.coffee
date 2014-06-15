@@ -1,7 +1,7 @@
 
 FFmpeg = require './ffmpeg'
 
-
+module.exports =
 class Video
   constructor: (@format) ->
     @options = @format.options
@@ -49,8 +49,8 @@ class Video
       return if index is @index
       break if @format.context.streams[index].codec.codec_type is FFmpeg.AVMEDIA_TYPE_VIDEO
 
-    @.close()
-    @.open @format.context.streams[index]
+    @close()
+    @open @format.context.streams[index]
 
     console.log "video.channel() #{@index} -> #{index}"
 
@@ -74,21 +74,16 @@ class Video
       frame.data[2]
       frame.linesize[2]
 
-      console.log [
-        "##video { "
-          "pts: #{frame.pts}, "
-          "sar: { "
-            "num: #{frame.sample_aspect_ratio.num}, "
-            "den: #{frame.sample_aspect_ratio.den} "
-          "}, "
-          "width: #{frame.width}, "
-          "height: #{frame.height}, "
-          "format: #{frame.format}, "
-          "pkt_pos: #{frame.pkt_pos} "
-        "}"
-      ].join ''
+      console.log " #video {
+        pts: #{frame.pts},
+        sar: {
+          num: #{frame.sample_aspect_ratio.num},
+          den: #{frame.sample_aspect_ratio.den}
+        },
+        width: #{frame.width},
+        height: #{frame.height},
+        format: #{frame.format},
+        pkt_pos: #{frame.pkt_pos}
+      }"
 
       frame.unref()
-
-
-module.exports = Video

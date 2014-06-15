@@ -1,7 +1,7 @@
 
 FFmpeg = require './ffmpeg'
 
-
+module.exports =
 class Subtitle
   constructor: (@format) ->
     @options = @format.options
@@ -56,8 +56,8 @@ class Subtitle
       stream = @format.context.streams[if program? then program.stream_indexes[index] else index]
       break if stream.codec.codec_type is FFmpeg.AVMEDIA_TYPE_SUBTITLE
 
-    @.close()
-    @.open @format.context.streams[if program? then program.stream_indexes[index] else index] if index >= 0
+    @close()
+    @open @format.context.streams[if program? then program.stream_indexes[index] else index] if index >= 0
 
     console.log "subtt.channel() #{@index} -> #{index}"
 
@@ -76,14 +76,9 @@ class Subtitle
           b = rect.pict.data[1][4 * c + 0]
           a = rect.pict.data[1][4 * c + 0]
 
-      console.log [
-        "##subtt { "
-          "pts: #{subtt.pts}, "
-          "format: #{subtt.format} "
-        "}"
-      ].join ''
+      console.log " #subtt {
+        pts: #{subtt.pts},
+        format: #{subtt.format}
+      }"
 
       subtt.free()
-
-
-module.exports = Subtitle

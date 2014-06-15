@@ -37,7 +37,7 @@ player.channel 'subtitle'
 player.info()
 ###
 
-
+module.exports =
 class Player
   constructor: ->
     @options =
@@ -86,8 +86,6 @@ class Player
     @subtt = new Subtitle @format
 
   open: (filename) ->
-    index = -1
-
     @format.open filename
 
     {video_index, audio_index, subtt_index} = @format.bestStreams()
@@ -96,6 +94,12 @@ class Player
     @subtt.open @format.context.streams[subtt_index] if subtt_index >= 0
 
     return @
+
+  close: ->
+    @video?.close()
+    @audio?.close()
+    @subtt?.close()
+    @format?.close()
 
   play: (times) ->
     packet = new FFmpeg.AVPacket
@@ -111,24 +115,11 @@ class Player
     return @
 
   toggle: ->
-
   stop: ->
 
-  close: ->
-    @video?.close()
-    @audio?.close()
-    @subtt?.close()
-    @format?.close()
-
   seek: ->
-
   step: ->
 
   screen: ->
-
   volume: ->
-
   channel: ->
-
-
-module.exports = Player
