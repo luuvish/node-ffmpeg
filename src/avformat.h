@@ -33,6 +33,8 @@ namespace FFmpeg {
       static NAN_GETTER(GetAudioCodec);
       static NAN_GETTER(GetVideoCodec);
       static NAN_GETTER(GetSubtitleCodec);
+      static NAN_GETTER(GetFlags);
+      static NAN_SETTER(SetFlags);
       explicit AVOutputFormatWrapper(::AVOutputFormat *oformat=nullptr);
       virtual ~AVOutputFormatWrapper();
       ::AVOutputFormat *_this;
@@ -51,6 +53,8 @@ namespace FFmpeg {
       static NAN_METHOD(FindInputFormat);
       static NAN_GETTER(GetName);
       static NAN_GETTER(GetLongName);
+      static NAN_GETTER(GetFlags);
+      static NAN_SETTER(SetFlags);
       explicit AVInputFormatWrapper(::AVInputFormat *iformat=nullptr);
       virtual ~AVInputFormatWrapper();
       ::AVInputFormat *_this;
@@ -75,6 +79,7 @@ namespace FFmpeg {
       static NAN_GETTER(GetDuration);
       static NAN_GETTER(GetDiscard);
       static NAN_GETTER(GetSampleAspectRatio);
+      static NAN_GETTER(GetMetadata);
       static NAN_SETTER(SetDiscard);
       explicit AVStreamWrapper(::AVStream *stream=nullptr);
       virtual ~AVStreamWrapper();
@@ -94,6 +99,7 @@ namespace FFmpeg {
       static NAN_GETTER(GetId);
       static NAN_GETTER(GetDiscard);
       static NAN_GETTER(GetStreamIndexes);
+      static NAN_GETTER(GetMetadata);
       static NAN_GETTER(GetProgramNum);
       static NAN_GETTER(GetStartTime);
       static NAN_GETTER(GetEndTime);
@@ -116,6 +122,7 @@ namespace FFmpeg {
       static NAN_GETTER(GetTimeBase);
       static NAN_GETTER(GetStart);
       static NAN_GETTER(GetEnd);
+      static NAN_GETTER(GetMetadata);
       explicit AVChapterWrapper(::AVChapter *chapter=nullptr);
       virtual ~AVChapterWrapper();
       ::AVChapter *_this;
@@ -168,14 +175,17 @@ namespace FFmpeg {
       static NAN_GETTER(GetFilename);
       static NAN_GETTER(GetStartTime);
       static NAN_GETTER(GetDuration);
+      static NAN_GETTER(GetFlags);
       static NAN_GETTER(GetPrograms);
       static NAN_GETTER(GetVideoCodecId);
       static NAN_GETTER(GetAudioCodecId);
       static NAN_GETTER(GetSubtitleCodecId);
       static NAN_GETTER(GetChapters);
+      static NAN_GETTER(GetMetadata);
       static NAN_GETTER(GetVideoCodec);
       static NAN_GETTER(GetAudioCodec);
       static NAN_GETTER(GetSubtitleCodec);
+      static NAN_SETTER(SetFlags);
       static NAN_SETTER(SetVideoCodec);
       static NAN_SETTER(SetAudioCodec);
       static NAN_SETTER(SetSubtitleCodec);

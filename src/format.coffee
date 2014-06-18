@@ -6,10 +6,9 @@ class Format
   constructor: (@options) ->
     @context = new FFmpeg.AVFormatContext
 
-  open: (@filename) ->
-    return if not @context or @context.openInput(@filename, {}) < 0
+  open: (@filename, options={}) ->
+    return if not @context or @context.openInput(@filename, options) < 0
 
-    ###
     @context.flags |= FFmpeg.AVFMT_FLAG_GENPTS if @options.genpts
 
     @options.seek_by_bytes =
@@ -18,21 +17,17 @@ class Format
     @max_frame_duration =
       if @context.iformat.flags & FFmpeg.AVFMT_TS_DISCONT then 10.0 else 3600.0
 
-    if not @options.window_title and @context.metadata.title
-      @options.window_title = @context.metadata.title + ' - ' + @options.input_filename
+    if not @options.window_title and @context.metadata.title?
+      @options.window_title = "#{@context.metadata.title} - #{@options.input_filename}"
 
     if @options.start_time isnt FFmpeg.AV_NOPTS_VALUE
       timestamp = @options.start_time
       timestamp += @context.start_time if @context.start_time isnt FFmpeg.AV_NOPTS_VALUE
-      return if @context.seekFile -1, INT64_MIN, timestamp, INT64_MAX, 0 < 0
-    ###
+      return if @context.seekFile(-1, FFmpeg.INT64_MIN, timestamp, FFmpeg.INT64_MAX, 0) < 0
 
     @realtime =
-      @context.iformat.name is 'rtp' or
-      @context.iformat.name is 'rtsp' or
-      @context.iformat.name is 'sdp' or
-      @filename.match '^rtsp:' or
-      @filename.match '^udp:'
+      @context.iformat.name in ['rtp', 'rtsp', 'sdp'] or
+      @filename.match '^rtp:' or @filename.match '^udp:'
     @options.infinite_buffer = 1 if @options.infinite_buffer < 0 and @realtime
 
     stream.discard = FFmpeg.AVDISCARD_ALL for stream in @context.streams

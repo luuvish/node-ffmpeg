@@ -143,7 +143,7 @@ class Player
                   if @options.decoder_reorder_pts is -1 then frame.best_effort_timestamp
                   else if @options.decoder_reorder_pts then frame.pkt_pts
                   else frame.pkt_dts
-                frame.sample_aspect_ratio = @format.context.guessSampleAspectRatio @stream, frame
+                frame.sample_aspect_ratio = @format.context.guessSampleAspectRatio @audio.stream, frame
 
                 frame.data[2]
                 frame.linesize[2]

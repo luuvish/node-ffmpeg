@@ -117,6 +117,8 @@ namespace FFmpeg {
       static NAN_GETTER(GetCodec);
       static NAN_GETTER(GetCodecName);
       static NAN_GETTER(GetCodecId);
+      static NAN_GETTER(GetFlags);
+      static NAN_GETTER(GetFlags2);
       static NAN_GETTER(GetTimeBase);
       static NAN_GETTER(GetWidth);
       static NAN_GETTER(GetHeight);
@@ -128,6 +130,8 @@ namespace FFmpeg {
       static NAN_GETTER(GetWorkaroundBugs);
       static NAN_GETTER(GetErrorConcealment);
       static NAN_GETTER(GetLowres);
+      static NAN_SETTER(SetFlags);
+      static NAN_SETTER(SetFlags2);
       static NAN_SETTER(SetWorkaroundBugs);
       static NAN_SETTER(SetErrorConcealment);
       static NAN_SETTER(SetLowres);
@@ -157,6 +161,7 @@ namespace FFmpeg {
       static NAN_GETTER(GetLongName);
       static NAN_GETTER(GetType);
       static NAN_GETTER(GetId);
+      static NAN_GETTER(GetCapabilities);
       static NAN_GETTER(GetMaxLowres);
       explicit AVCodecWrapper(::AVCodec *codec=nullptr);
       virtual ~AVCodecWrapper();

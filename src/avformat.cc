@@ -15,6 +15,74 @@ void FFmpeg::AVFormat::Initialize(Handle<Object> target) {
   AVProgramWrapper::Initialize(target);
   AVChapterWrapper::Initialize(target);
   AVFormatContextWrapper::Initialize(target);
+
+  // libavformat/avformat.h
+  target->Set(NanNew<String>("AVFMT_NOFILE"),
+              NanNew<Number>(AVFMT_NOFILE));
+  target->Set(NanNew<String>("AVFMT_NEEDNUMBER"),
+              NanNew<Number>(AVFMT_NEEDNUMBER));
+  target->Set(NanNew<String>("AVFMT_SHOW_IDS"),
+              NanNew<Number>(AVFMT_SHOW_IDS));
+  target->Set(NanNew<String>("AVFMT_RAWPICTURE"),
+              NanNew<Number>(AVFMT_RAWPICTURE));
+  target->Set(NanNew<String>("AVFMT_GLOBALHEADER"),
+              NanNew<Number>(AVFMT_GLOBALHEADER));
+  target->Set(NanNew<String>("AVFMT_NOTIMESTAMPS"),
+              NanNew<Number>(AVFMT_NOTIMESTAMPS));
+  target->Set(NanNew<String>("AVFMT_GENERIC_INDEX"),
+              NanNew<Number>(AVFMT_GENERIC_INDEX));
+  target->Set(NanNew<String>("AVFMT_TS_DISCONT"),
+              NanNew<Number>(AVFMT_TS_DISCONT));
+  target->Set(NanNew<String>("AVFMT_VARIABLE_FPS"),
+              NanNew<Number>(AVFMT_VARIABLE_FPS));
+  target->Set(NanNew<String>("AVFMT_NODIMENSIONS"),
+              NanNew<Number>(AVFMT_NODIMENSIONS));
+  target->Set(NanNew<String>("AVFMT_NOSTREAMS"),
+              NanNew<Number>(AVFMT_NOSTREAMS));
+  target->Set(NanNew<String>("AVFMT_NOBINSEARCH"),
+              NanNew<Number>(AVFMT_NOBINSEARCH));
+  target->Set(NanNew<String>("AVFMT_NOGENSEARCH"),
+              NanNew<Number>(AVFMT_NOGENSEARCH));
+  target->Set(NanNew<String>("AVFMT_NO_BYTE_SEEK"),
+              NanNew<Number>(AVFMT_NO_BYTE_SEEK));
+  target->Set(NanNew<String>("AVFMT_ALLOW_FLUSH"),
+              NanNew<Number>(AVFMT_ALLOW_FLUSH));
+  target->Set(NanNew<String>("AVFMT_TS_NONSTRICT"),
+              NanNew<Number>(AVFMT_TS_NONSTRICT));
+  target->Set(NanNew<String>("AVFMT_TS_NEGATIVE"),
+              NanNew<Number>(AVFMT_TS_NEGATIVE));
+  target->Set(NanNew<String>("AVFMT_SEEK_TO_PTS"),
+              NanNew<Number>(AVFMT_SEEK_TO_PTS));
+
+  // libavformat/avformat.h
+  target->Set(NanNew<String>("AVFMT_FLAG_GENPTS"),
+              NanNew<Number>(AVFMT_FLAG_GENPTS));
+  target->Set(NanNew<String>("AVFMT_FLAG_IGNIDX"),
+              NanNew<Number>(AVFMT_FLAG_IGNIDX));
+  target->Set(NanNew<String>("AVFMT_FLAG_NONBLOCK"),
+              NanNew<Number>(AVFMT_FLAG_NONBLOCK));
+  target->Set(NanNew<String>("AVFMT_FLAG_IGNDTS"),
+              NanNew<Number>(AVFMT_FLAG_IGNDTS));
+  target->Set(NanNew<String>("AVFMT_FLAG_NOFILLIN"),
+              NanNew<Number>(AVFMT_FLAG_NOFILLIN));
+  target->Set(NanNew<String>("AVFMT_FLAG_NOPARSE"),
+              NanNew<Number>(AVFMT_FLAG_NOPARSE));
+  target->Set(NanNew<String>("AVFMT_FLAG_NOBUFFER"),
+              NanNew<Number>(AVFMT_FLAG_NOBUFFER));
+  target->Set(NanNew<String>("AVFMT_FLAG_CUSTOM_IO"),
+              NanNew<Number>(AVFMT_FLAG_CUSTOM_IO));
+  target->Set(NanNew<String>("AVFMT_FLAG_DISCARD_CORRUPT"),
+              NanNew<Number>(AVFMT_FLAG_DISCARD_CORRUPT));
+  target->Set(NanNew<String>("AVFMT_FLAG_FLUSH_PACKETS"),
+              NanNew<Number>(AVFMT_FLAG_FLUSH_PACKETS));
+  target->Set(NanNew<String>("AVFMT_FLAG_MP4A_LATM"),
+              NanNew<Number>(AVFMT_FLAG_MP4A_LATM));
+  target->Set(NanNew<String>("AVFMT_FLAG_SORT_DTS"),
+              NanNew<Number>(AVFMT_FLAG_SORT_DTS));
+  target->Set(NanNew<String>("AVFMT_FLAG_PRIV_OPT"),
+              NanNew<Number>(AVFMT_FLAG_PRIV_OPT));
+  target->Set(NanNew<String>("AVFMT_FLAG_KEEP_SIDE_DATA"),
+              NanNew<Number>(AVFMT_FLAG_KEEP_SIDE_DATA));
 }
 
 
@@ -52,6 +120,7 @@ FFmpeg::AVFormat::AVOutputFormatWrapper::Initialize(Handle<Object> target) {
   proto->SetAccessor(NanNew<String>("audio_codec"), GetAudioCodec);
   proto->SetAccessor(NanNew<String>("video_codec"), GetVideoCodec);
   proto->SetAccessor(NanNew<String>("subtitle_codec"), GetSubtitleCodec);
+  proto->SetAccessor(NanNew<String>("flags"), GetFlags, SetFlags);
 
   Local<Function> creator = ctor->GetFunction();
   target->Set(NanNew<String>("AVOutputFormat"), creator);
@@ -207,6 +276,21 @@ NAN_GETTER(FFmpeg::AVFormat::AVOutputFormatWrapper::GetSubtitleCodec) {
   NanReturnValue(NanNew<Number>(subtitle_codec));
 }
 
+NAN_GETTER(FFmpeg::AVFormat::AVOutputFormatWrapper::GetFlags) {
+  NanScope();
+  AVOutputFormatWrapper *obj =
+    ObjectWrap::Unwrap<AVOutputFormatWrapper>(args.This());
+  int flags = obj->_this->flags;
+  NanReturnValue(NanNew<Integer>(flags));
+}
+
+NAN_SETTER(FFmpeg::AVFormat::AVOutputFormatWrapper::SetFlags) {
+  NanScope();
+  AVOutputFormatWrapper *obj =
+    ObjectWrap::Unwrap<AVOutputFormatWrapper>(args.This());
+  obj->_this->flags = value->Int32Value();
+}
+
 
 Persistent<FunctionTemplate>
 FFmpeg::AVFormat::AVInputFormatWrapper::constructor;
@@ -236,6 +320,7 @@ void FFmpeg::AVFormat::AVInputFormatWrapper::Initialize(Handle<Object> target) {
   Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
   proto->SetAccessor(NanNew<String>("name"), GetName);
   proto->SetAccessor(NanNew<String>("long_name"), GetLongName);
+  proto->SetAccessor(NanNew<String>("flags"), GetFlags, SetFlags);
 
   Local<Function> creator = ctor->GetFunction();
   target->Set(NanNew<String>("AVInputFormat"), creator);
@@ -299,6 +384,21 @@ NAN_GETTER(FFmpeg::AVFormat::AVInputFormatWrapper::GetLongName) {
   NanReturnValue(NanNew<String>(long_name));
 }
 
+NAN_GETTER(FFmpeg::AVFormat::AVInputFormatWrapper::GetFlags) {
+  NanScope();
+  AVInputFormatWrapper *obj =
+    ObjectWrap::Unwrap<AVInputFormatWrapper>(args.This());
+  int flags = obj->_this->flags;
+  NanReturnValue(NanNew<Integer>(flags));
+}
+
+NAN_SETTER(FFmpeg::AVFormat::AVInputFormatWrapper::SetFlags) {
+  NanScope();
+  AVInputFormatWrapper *obj =
+    ObjectWrap::Unwrap<AVInputFormatWrapper>(args.This());
+  obj->_this->flags = value->Int32Value();
+}
+
 
 Persistent<FunctionTemplate> FFmpeg::AVFormat::AVStreamWrapper::constructor;
 
@@ -334,6 +434,7 @@ void FFmpeg::AVFormat::AVStreamWrapper::Initialize(Handle<Object> target) {
   proto->SetAccessor(NanNew<String>("discard"), GetDiscard, SetDiscard);
   proto->SetAccessor(NanNew<String>("sample_aspect_ratio"),
                      GetSampleAspectRatio);
+  proto->SetAccessor(NanNew<String>("metadata"), GetMetadata);
 
   Local<Function> creator = ctor->GetFunction();
   target->Set(NanNew<String>("AVStream"), creator);
@@ -439,6 +540,17 @@ NAN_GETTER(FFmpeg::AVFormat::AVStreamWrapper::GetSampleAspectRatio) {
   NanReturnValue(ret);
 }
 
+NAN_GETTER(FFmpeg::AVFormat::AVStreamWrapper::GetMetadata) {
+  NanScope();
+  AVStreamWrapper *obj = ObjectWrap::Unwrap<AVStreamWrapper>(args.This());
+  Handle<Object> ret = NanNew<Object>();
+  AVDictionary *metadata = obj->_this->metadata;
+  AVDictionaryEntry *t = nullptr;
+  while ((t = av_dict_get(metadata, "", t, AV_DICT_IGNORE_SUFFIX)))
+    ret->Set(NanNew<String>(t->key), NanNew<String>(t->value));
+  NanReturnValue(ret);
+}
+
 NAN_SETTER(FFmpeg::AVFormat::AVStreamWrapper::SetDiscard) {
   NanScope();
   if (!value->IsNumber())
@@ -475,6 +587,7 @@ void FFmpeg::AVFormat::AVProgramWrapper::Initialize(Handle<Object> target) {
   proto->SetAccessor(NanNew<String>("id"), GetId);
   proto->SetAccessor(NanNew<String>("discard"), GetDiscard);
   proto->SetAccessor(NanNew<String>("stream_indexes"), GetStreamIndexes);
+  proto->SetAccessor(NanNew<String>("metadata"), GetMetadata);
   proto->SetAccessor(NanNew<String>("program_num"), GetProgramNum);
   proto->SetAccessor(NanNew<String>("start_time"), GetStartTime);
   proto->SetAccessor(NanNew<String>("end_time"), GetEndTime);
@@ -532,6 +645,17 @@ NAN_GETTER(FFmpeg::AVFormat::AVProgramWrapper::GetStreamIndexes) {
   NanReturnValue(stream_indexes);
 }
 
+NAN_GETTER(FFmpeg::AVFormat::AVProgramWrapper::GetMetadata) {
+  NanScope();
+  AVProgramWrapper *obj = ObjectWrap::Unwrap<AVProgramWrapper>(args.This());
+  Handle<Object> ret = NanNew<Object>();
+  AVDictionary *metadata = obj->_this->metadata;
+  AVDictionaryEntry *t = nullptr;
+  while ((t = av_dict_get(metadata, "", t, AV_DICT_IGNORE_SUFFIX)))
+    ret->Set(NanNew<String>(t->key), NanNew<String>(t->value));
+  NanReturnValue(ret);
+}
+
 NAN_GETTER(FFmpeg::AVFormat::AVProgramWrapper::GetProgramNum) {
   NanScope();
   AVProgramWrapper *obj = ObjectWrap::Unwrap<AVProgramWrapper>(args.This());
@@ -582,6 +706,7 @@ void FFmpeg::AVFormat::AVChapterWrapper::Initialize(Handle<Object> target) {
   proto->SetAccessor(NanNew<String>("time_base"), GetTimeBase);
   proto->SetAccessor(NanNew<String>("start"), GetStart);
   proto->SetAccessor(NanNew<String>("end"), GetEnd);
+  proto->SetAccessor(NanNew<String>("metadata"), GetMetadata);
 
   Local<Function> creator = ctor->GetFunction();
   target->Set(NanNew<String>("AVChapter"), creator);
@@ -642,6 +767,17 @@ NAN_GETTER(FFmpeg::AVFormat::AVChapterWrapper::GetEnd) {
   AVChapterWrapper *obj = ObjectWrap::Unwrap<AVChapterWrapper>(args.This());
   int64_t end = obj->_this->end;
   NanReturnValue(NanNew<Number>(end));
+}
+
+NAN_GETTER(FFmpeg::AVFormat::AVChapterWrapper::GetMetadata) {
+  NanScope();
+  AVChapterWrapper *obj = ObjectWrap::Unwrap<AVChapterWrapper>(args.This());
+  Handle<Object> ret = NanNew<Object>();
+  AVDictionary *metadata = obj->_this->metadata;
+  AVDictionaryEntry *t = nullptr;
+  while ((t = av_dict_get(metadata, "", t, AV_DICT_IGNORE_SUFFIX)))
+    ret->Set(NanNew<String>(t->key), NanNew<String>(t->value));
+  NanReturnValue(ret);
 }
 
 
@@ -725,11 +861,13 @@ FFmpeg::AVFormat::AVFormatContextWrapper::Initialize(Handle<Object> target) {
   proto->SetAccessor(NanNew<String>("filename"), GetFilename);
   proto->SetAccessor(NanNew<String>("start_time"), GetStartTime);
   proto->SetAccessor(NanNew<String>("duration"), GetDuration);
+  proto->SetAccessor(NanNew<String>("flags"), GetFlags, SetFlags);
   proto->SetAccessor(NanNew<String>("programs"), GetPrograms);
   proto->SetAccessor(NanNew<String>("video_codec_id"), GetVideoCodecId);
   proto->SetAccessor(NanNew<String>("audio_codec_id"), GetAudioCodecId);
   proto->SetAccessor(NanNew<String>("subtitle_codec_id"), GetSubtitleCodecId);
   proto->SetAccessor(NanNew<String>("chapters"), GetChapters);
+  proto->SetAccessor(NanNew<String>("metadata"), GetMetadata);
   proto->SetAccessor(NanNew<String>("video_codec"),
                      GetVideoCodec, SetVideoCodec);
   proto->SetAccessor(NanNew<String>("audio_codec"),
@@ -1191,6 +1329,14 @@ NAN_GETTER(FFmpeg::AVFormat::AVFormatContextWrapper::GetDuration) {
   NanReturnValue(NanNew<Number>(duration));
 }
 
+NAN_GETTER(FFmpeg::AVFormat::AVFormatContextWrapper::GetFlags) {
+  NanScope();
+  AVFormatContextWrapper *obj =
+    ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
+  int flags = obj->_this->flags;
+  NanReturnValue(NanNew<Integer>(flags));
+}
+
 NAN_GETTER(FFmpeg::AVFormat::AVFormatContextWrapper::GetPrograms) {
   NanScope();
   AVFormatContextWrapper *obj =
@@ -1243,6 +1389,18 @@ NAN_GETTER(FFmpeg::AVFormat::AVFormatContextWrapper::GetChapters) {
   NanReturnValue(chapters);
 }
 
+NAN_GETTER(FFmpeg::AVFormat::AVFormatContextWrapper::GetMetadata) {
+  NanScope();
+  AVFormatContextWrapper *obj =
+    ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
+  Handle<Object> ret = NanNew<Object>();
+  AVDictionary *metadata = obj->_this->metadata;
+  AVDictionaryEntry *t = nullptr;
+  while ((t = av_dict_get(metadata, "", t, AV_DICT_IGNORE_SUFFIX)))
+    ret->Set(NanNew<String>(t->key), NanNew<String>(t->value));
+  NanReturnValue(ret);
+}
+
 NAN_GETTER(FFmpeg::AVFormat::AVFormatContextWrapper::GetVideoCodec) {
   NanScope();
   AVFormatContextWrapper *obj =
@@ -1274,6 +1432,13 @@ NAN_GETTER(FFmpeg::AVFormat::AVFormatContextWrapper::GetSubtitleCodec) {
     NanReturnNull();
   Handle<Value> ret = AVCodec::AVCodecWrapper::newInstance(codec);
   NanReturnValue(ret);
+}
+
+NAN_SETTER(FFmpeg::AVFormat::AVFormatContextWrapper::SetFlags) {
+  NanScope();
+  AVFormatContextWrapper *obj =
+    ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
+  obj->_this->flags = value->Int32Value();
 }
 
 NAN_SETTER(FFmpeg::AVFormat::AVFormatContextWrapper::SetVideoCodec) {

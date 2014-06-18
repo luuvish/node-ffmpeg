@@ -28,6 +28,114 @@ void FFmpeg::AVCodec::Initialize(Handle<Object> target) {
               NanNew<Number>(::AVDISCARD_NONKEY));
   target->Set(NanNew<String>("AVDISCARD_ALL"),
               NanNew<Number>(::AVDISCARD_ALL));
+
+  target->Set(NanNew<String>("CODEC_FLAG_UNALIGNED"),
+              NanNew<Number>(CODEC_FLAG_UNALIGNED));
+  target->Set(NanNew<String>("CODEC_FLAG_QSCALE"),
+              NanNew<Number>(CODEC_FLAG_QSCALE));
+  target->Set(NanNew<String>("CODEC_FLAG_4MV"),
+              NanNew<Number>(CODEC_FLAG_4MV));
+  target->Set(NanNew<String>("CODEC_FLAG_OUTPUT_CORRUPT"),
+              NanNew<Number>(CODEC_FLAG_OUTPUT_CORRUPT));
+  target->Set(NanNew<String>("CODEC_FLAG_QPEL"),
+              NanNew<Number>(CODEC_FLAG_QPEL));
+  target->Set(NanNew<String>("CODEC_FLAG_GMC"),
+              NanNew<Number>(CODEC_FLAG_GMC));
+  target->Set(NanNew<String>("CODEC_FLAG_MV0"),
+              NanNew<Number>(CODEC_FLAG_MV0));
+  target->Set(NanNew<String>("CODEC_FLAG_INPUT_PRESERVED"),
+              NanNew<Number>(CODEC_FLAG_INPUT_PRESERVED));
+  target->Set(NanNew<String>("CODEC_FLAG_PASS1"),
+              NanNew<Number>(CODEC_FLAG_PASS1));
+  target->Set(NanNew<String>("CODEC_FLAG_PASS2"),
+              NanNew<Number>(CODEC_FLAG_PASS2));
+  target->Set(NanNew<String>("CODEC_FLAG_GRAY"),
+              NanNew<Number>(CODEC_FLAG_GRAY));
+  target->Set(NanNew<String>("CODEC_FLAG_EMU_EDGE"),
+              NanNew<Number>(CODEC_FLAG_EMU_EDGE));
+  target->Set(NanNew<String>("CODEC_FLAG_PSNR"),
+              NanNew<Number>(CODEC_FLAG_PSNR));
+  target->Set(NanNew<String>("CODEC_FLAG_TRUNCATED"),
+              NanNew<Number>(CODEC_FLAG_TRUNCATED));
+  target->Set(NanNew<String>("CODEC_FLAG_NORMALIZE_AQP"),
+              NanNew<Number>(CODEC_FLAG_NORMALIZE_AQP));
+  target->Set(NanNew<String>("CODEC_FLAG_INTERLACED_DCT"),
+              NanNew<Number>(CODEC_FLAG_INTERLACED_DCT));
+  target->Set(NanNew<String>("CODEC_FLAG_LOW_DELAY"),
+              NanNew<Number>(CODEC_FLAG_LOW_DELAY));
+  target->Set(NanNew<String>("CODEC_FLAG_GLOBAL_HEADER"),
+              NanNew<Number>(CODEC_FLAG_GLOBAL_HEADER));
+  target->Set(NanNew<String>("CODEC_FLAG_BITEXACT"),
+              NanNew<Number>(CODEC_FLAG_BITEXACT));
+  target->Set(NanNew<String>("CODEC_FLAG_AC_PRED"),
+              NanNew<Number>(CODEC_FLAG_AC_PRED));
+  target->Set(NanNew<String>("CODEC_FLAG_LOOP_FILTER"),
+              NanNew<Number>(CODEC_FLAG_LOOP_FILTER));
+  target->Set(NanNew<String>("CODEC_FLAG_INTERLACED_ME"),
+              NanNew<Number>(CODEC_FLAG_INTERLACED_ME));
+  target->Set(NanNew<String>("CODEC_FLAG_CLOSED_GOP"),
+              NanNew<Number>(CODEC_FLAG_CLOSED_GOP));
+
+  target->Set(NanNew<String>("CODEC_FLAG2_FAST"),
+              NanNew<Number>(CODEC_FLAG2_FAST));
+  target->Set(NanNew<String>("CODEC_FLAG2_NO_OUTPUT"),
+              NanNew<Number>(CODEC_FLAG2_NO_OUTPUT));
+  target->Set(NanNew<String>("CODEC_FLAG2_LOCAL_HEADER"),
+              NanNew<Number>(CODEC_FLAG2_LOCAL_HEADER));
+  target->Set(NanNew<String>("CODEC_FLAG2_DROP_FRAME_TIMECODE"),
+              NanNew<Number>(CODEC_FLAG2_DROP_FRAME_TIMECODE));
+  target->Set(NanNew<String>("CODEC_FLAG2_IGNORE_CROP"),
+              NanNew<Number>(CODEC_FLAG2_IGNORE_CROP));
+  target->Set(NanNew<String>("CODEC_FLAG2_CHUNKS"),
+              NanNew<Number>(CODEC_FLAG2_CHUNKS));
+  target->Set(NanNew<String>("CODEC_FLAG2_SHOW_ALL"),
+              NanNew<Number>(CODEC_FLAG2_SHOW_ALL));
+
+  target->Set(NanNew<String>("CODEC_CAP_DRAW_HORIZ_BAND"),
+              NanNew<Number>(CODEC_CAP_DRAW_HORIZ_BAND));
+  target->Set(NanNew<String>("CODEC_CAP_DR1"),
+              NanNew<Number>(CODEC_CAP_DR1));
+  target->Set(NanNew<String>("CODEC_CAP_TRUNCATED"),
+              NanNew<Number>(CODEC_CAP_TRUNCATED));
+  target->Set(NanNew<String>("CODEC_CAP_HWACCEL"),
+              NanNew<Number>(CODEC_CAP_HWACCEL));
+  target->Set(NanNew<String>("CODEC_CAP_DELAY"),
+              NanNew<Number>(CODEC_CAP_DELAY));
+  target->Set(NanNew<String>("CODEC_CAP_SMALL_LAST_FRAME"),
+              NanNew<Number>(CODEC_CAP_SMALL_LAST_FRAME));
+  target->Set(NanNew<String>("CODEC_CAP_HWACCEL_VDPAU"),
+              NanNew<Number>(CODEC_CAP_HWACCEL_VDPAU));
+  target->Set(NanNew<String>("CODEC_CAP_SUBFRAMES"),
+              NanNew<Number>(CODEC_CAP_SUBFRAMES));
+  target->Set(NanNew<String>("CODEC_CAP_EXPERIMENTAL"),
+              NanNew<Number>(CODEC_CAP_EXPERIMENTAL));
+  target->Set(NanNew<String>("CODEC_CAP_CHANNEL_CONF"),
+              NanNew<Number>(CODEC_CAP_CHANNEL_CONF));
+  target->Set(NanNew<String>("CODEC_CAP_NEG_LINESIZES"),
+              NanNew<Number>(CODEC_CAP_NEG_LINESIZES));
+  target->Set(NanNew<String>("CODEC_CAP_FRAME_THREADS"),
+              NanNew<Number>(CODEC_CAP_FRAME_THREADS));
+  target->Set(NanNew<String>("CODEC_CAP_SLICE_THREADS"),
+              NanNew<Number>(CODEC_CAP_SLICE_THREADS));
+  target->Set(NanNew<String>("CODEC_CAP_PARAM_CHANGE"),
+              NanNew<Number>(CODEC_CAP_PARAM_CHANGE));
+  target->Set(NanNew<String>("CODEC_CAP_AUTO_THREADS"),
+              NanNew<Number>(CODEC_CAP_AUTO_THREADS));
+  target->Set(NanNew<String>("CODEC_CAP_VARIABLE_FRAME_SIZE"),
+              NanNew<Number>(CODEC_CAP_VARIABLE_FRAME_SIZE));
+  target->Set(NanNew<String>("CODEC_CAP_INTRA_ONLY"),
+              NanNew<Number>(CODEC_CAP_INTRA_ONLY));
+  target->Set(NanNew<String>("CODEC_CAP_LOSSLESS"),
+              NanNew<Number>(CODEC_CAP_LOSSLESS));
+
+  target->Set(NanNew<String>("SUBTITLE_NONE"),
+              NanNew<Number>(::SUBTITLE_NONE));
+  target->Set(NanNew<String>("SUBTITLE_BITMAP"),
+              NanNew<Number>(::SUBTITLE_BITMAP));
+  target->Set(NanNew<String>("SUBTITLE_TEXT"),
+              NanNew<Number>(::SUBTITLE_TEXT));
+  target->Set(NanNew<String>("SUBTITLE_ASS"),
+              NanNew<Number>(::SUBTITLE_ASS));
 }
 
 
@@ -301,6 +409,8 @@ void FFmpeg::AVCodec::AVCodecContextWrapper::Initialize(Handle<Object> target) {
   proto->SetAccessor(NanNew<String>("codec"), GetCodec);
   proto->SetAccessor(NanNew<String>("codec_name"), GetCodecName);
   proto->SetAccessor(NanNew<String>("codec_id"), GetCodecId);
+  proto->SetAccessor(NanNew<String>("flags"), GetFlags, SetFlags);
+  proto->SetAccessor(NanNew<String>("flags2"), GetFlags2, SetFlags2);
   proto->SetAccessor(NanNew<String>("time_base"), GetTimeBase);
   proto->SetAccessor(NanNew<String>("width"), GetWidth);
   proto->SetAccessor(NanNew<String>("height"), GetHeight);
@@ -397,8 +507,6 @@ NAN_METHOD(FFmpeg::AVCodec::AVCodecContextWrapper::Open) {
   }
 
   obj->_this->codec_id = codec->id;
-  if (codec->capabilities & CODEC_CAP_DR1)
-    obj->_this->flags |= CODEC_FLAG_EMU_EDGE;
 
   int ret = avcodec_open2(obj->_this, codec, &options);
 
@@ -603,6 +711,22 @@ NAN_GETTER(FFmpeg::AVCodec::AVCodecContextWrapper::GetCodecId) {
   NanReturnValue(NanNew<Number>(codec_id));
 }
 
+NAN_GETTER(FFmpeg::AVCodec::AVCodecContextWrapper::GetFlags) {
+  NanScope();
+  AVCodecContextWrapper *obj =
+    ObjectWrap::Unwrap<AVCodecContextWrapper>(args.This());
+  int flags = obj->_this->flags;
+  NanReturnValue(NanNew<Integer>(flags));
+}
+
+NAN_GETTER(FFmpeg::AVCodec::AVCodecContextWrapper::GetFlags2) {
+  NanScope();
+  AVCodecContextWrapper *obj =
+    ObjectWrap::Unwrap<AVCodecContextWrapper>(args.This());
+  int flags2 = obj->_this->flags2;
+  NanReturnValue(NanNew<Integer>(flags2));
+}
+
 NAN_GETTER(FFmpeg::AVCodec::AVCodecContextWrapper::GetTimeBase) {
   NanScope();
   AVCodecContextWrapper *obj =
@@ -694,6 +818,20 @@ NAN_GETTER(FFmpeg::AVCodec::AVCodecContextWrapper::GetLowres) {
   NanReturnValue(NanNew<Number>(lowres));
 }
 
+NAN_SETTER(FFmpeg::AVCodec::AVCodecContextWrapper::SetFlags) {
+  NanScope();
+  AVCodecContextWrapper *obj =
+    ObjectWrap::Unwrap<AVCodecContextWrapper>(args.This());
+  obj->_this->flags = value->Int32Value();
+}
+
+NAN_SETTER(FFmpeg::AVCodec::AVCodecContextWrapper::SetFlags2) {
+  NanScope();
+  AVCodecContextWrapper *obj =
+    ObjectWrap::Unwrap<AVCodecContextWrapper>(args.This());
+  obj->_this->flags2 = value->Int32Value();
+}
+
 NAN_SETTER(FFmpeg::AVCodec::AVCodecContextWrapper::SetWorkaroundBugs) {
   NanScope();
   AVCodecContextWrapper *obj =
@@ -746,6 +884,7 @@ void FFmpeg::AVCodec::AVCodecWrapper::Initialize(Handle<Object> target) {
   proto->SetAccessor(NanNew<String>("long_name"), GetLongName);
   proto->SetAccessor(NanNew<String>("type"), GetType);
   proto->SetAccessor(NanNew<String>("id"), GetId);
+  proto->SetAccessor(NanNew<String>("capabilities"), GetCapabilities);
   proto->SetAccessor(NanNew<String>("max_lowres"), GetMaxLowres);
 
   Local<Function> creator = ctor->GetFunction();
@@ -889,6 +1028,13 @@ NAN_GETTER(FFmpeg::AVCodec::AVCodecWrapper::GetId) {
   AVCodecWrapper *obj = ObjectWrap::Unwrap<AVCodecWrapper>(args.This());
   enum ::AVCodecID id = obj->_this->id;
   NanReturnValue(NanNew<Number>(id));
+}
+
+NAN_GETTER(FFmpeg::AVCodec::AVCodecWrapper::GetCapabilities) {
+  NanScope();
+  AVCodecWrapper *obj = ObjectWrap::Unwrap<AVCodecWrapper>(args.This());
+  int capabilities = obj->_this->capabilities;
+  NanReturnValue(NanNew<Integer>(capabilities));
 }
 
 NAN_GETTER(FFmpeg::AVCodec::AVCodecWrapper::GetMaxLowres) {

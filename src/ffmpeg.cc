@@ -18,6 +18,9 @@ void Init(Handle<Object> exports) {
   FFmpeg::AVFormat::Initialize(exports);
   FFmpeg::AVCodec::Initialize(exports);
   FFmpeg::AVUtil::Initialize(exports);
+
+  exports->Set(NanNew<String>("INT64_MIN"), NanNew<Number>(INT64_MIN));
+  exports->Set(NanNew<String>("INT64_MAX"), NanNew<Number>(INT64_MAX));
 }
 
 

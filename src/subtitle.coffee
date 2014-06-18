@@ -18,12 +18,13 @@ class Subtitle
     context.workaround_bugs = @options.workaround_bugs
     context.error_concealment = @options.error_concealment
 
-    # @context.flags |= CODEC_FLAG_EMU_EDGE if @context.lowres > 0
-    # @context.flags2 |= CODEC_FLAG2_FAST if @options.fast
+    context.flags |= FFmpeg.CODEC_FLAG_EMU_EDGE if context.lowres > 0
+    context.flags |= FFmpeg.CODEC_FLAG_EMU_EDGE if codec.capabilities & FFmpeg.CODEC_CAP_DR1
+    context.flags2 |= FFmpeg.CODEC_FLAG2_FAST if @options.fast
 
-    option = threads: 'auto'
-    option.lowres = context.lowres if context.lowres > 0
-    return if not codec or context.open(codec, option) < 0
+    options = threads: 'auto'
+    options.lowres = context.lowres if context.lowres > 0
+    return if not codec or context.open(codec, options) < 0
 
     @index = stream.index
     @stream = stream
