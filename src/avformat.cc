@@ -645,6 +645,35 @@ NAN_GETTER(FFmpeg::AVFormat::AVChapterWrapper::GetEnd) {
 }
 
 
+FFmpeg::AVFormat::AVReadFrameWorker::
+AVReadFrameWorker(std::list<NanAsyncWorker*> &q,
+                  ::AVFormatContext *ctx, ::AVPacket *pkt,
+                  NanCallback *callback)
+  : NanAsyncWorker(callback), queue(q), context(ctx), packet(pkt) {
+}
+
+FFmpeg::AVFormat::AVReadFrameWorker::~AVReadFrameWorker() {
+}
+
+void FFmpeg::AVFormat::AVReadFrameWorker::Execute() {
+  result = av_read_frame(context, packet);
+}
+
+void FFmpeg::AVFormat::AVReadFrameWorker::HandleOKCallback() {
+  NanScope();
+
+  queue.pop_front();
+  if (queue.size() > 0)
+      NanAsyncQueueWorker(queue.front());
+
+  Handle<Value> pkt = AVCodec::AVPacketWrapper::newInstance(packet);
+
+  const int argc = 2;
+  Handle<Value> argv[argc] = { NanNew<Number>(result), pkt };
+  callback->Call(argc, argv);
+}
+
+
 Persistent<FunctionTemplate>
 FFmpeg::AVFormat::AVFormatContextWrapper::constructor;
 
@@ -891,6 +920,17 @@ NAN_METHOD(FFmpeg::AVFormat::AVFormatContextWrapper::ReadFrame) {
 
   AVFormatContextWrapper *obj =
     ObjectWrap::Unwrap<AVFormatContextWrapper>(args.This());
+
+  if (args[1]->IsFunction()) {
+    NanCallback *callback = new NanCallback(Local<Function>::Cast(args[1]));
+    AVReadFrameWorker *worker =
+      new AVReadFrameWorker(obj->_async_queue, obj->_this, pkt, callback);
+    obj->_async_queue.push_back(worker);
+    if (obj->_async_queue.size() == 1)
+      NanAsyncQueueWorker(obj->_async_queue.front());
+    NanReturnUndefined();
+  }
+
   int ret = av_read_frame(obj->_this, pkt);
   NanReturnValue(NanNew<Number>(ret));
 }

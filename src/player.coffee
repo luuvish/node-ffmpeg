@@ -102,17 +102,24 @@ class Player
     @format?.close()
 
   play: (times) ->
-    packet = new FFmpeg.AVPacket
-
     for i in [0...(times ? 1)]
-      @format.read packet
-      switch packet.stream_index
-        when @video.index then @video.decode packet
-        when @audio.index then @audio.decode packet
-        when @subtt.index then @subtt.decode packet
-      packet.free()
+      @format.read (ret, packet) =>
+        console.log "#packet {
+          stream_index: #{packet.stream_index},
+          pts: #{packet.pts},
+          dts: #{packet.dts},
+          size: #{packet.size},
+          duration: #{packet.duration},
+          pos: #{packet.pos}
+        }"
 
-    return @
+        switch packet.stream_index
+          when @video.index then @video.decode packet
+          when @audio.index then @audio.decode packet
+          when @subtt.index then @subtt.decode packet
+        packet.free()
+
+    null
 
   toggle: ->
   stop: ->

@@ -61,16 +61,12 @@ class Format
 
     {video_index, audio_index, subtt_index}
 
-  read: (packet) ->
+  read: (callback) ->
+    packet = new FFmpeg.AVPacket
     packet.free()
 
-    return if @context.readFrame(packet) < 0
-
-    console.log "#packet {
-      stream_index: #{packet.stream_index},
-      pts: #{packet.pts},
-      dts: #{packet.dts},
-      size: #{packet.size},
-      duration: #{packet.duration},
-      pos: #{packet.pos}
-    }"
+    if typeof callback is 'function'
+      @context.readFrame packet, callback
+    else
+      @context.readFrame packet
+      packet

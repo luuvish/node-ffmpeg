@@ -3,6 +3,7 @@
 
 #include <node.h>
 #include <nan.h>
+#include <list>
 
 extern "C" {
 #include "libavformat/avformat.h"
@@ -121,6 +122,23 @@ namespace FFmpeg {
       bool _allocated;
     };
 
+    class AVFormatContextWrapper;
+
+    class AVReadFrameWorker : public NanAsyncWorker {
+    public:
+      explicit AVReadFrameWorker(std::list<NanAsyncWorker*> &q,
+                                 ::AVFormatContext *ctx, ::AVPacket *pkt,
+                                 NanCallback *callback);
+      virtual ~AVReadFrameWorker();
+      void Execute();
+      void HandleOKCallback();
+    private:
+      std::list<NanAsyncWorker*> &queue;
+      ::AVFormatContext *context;
+      ::AVPacket *packet;
+      int result;
+    };
+
     class AVFormatContextWrapper : public node::ObjectWrap {
     public:
       static void Initialize(v8::Handle<v8::Object> target);
@@ -167,6 +185,7 @@ namespace FFmpeg {
       virtual ~AVFormatContextWrapper();
       ::AVFormatContext *_this;
       bool _allocated;
+      std::list<NanAsyncWorker*> _async_queue;
     };
 
   }
