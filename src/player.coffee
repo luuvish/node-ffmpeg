@@ -114,10 +114,71 @@ class Player
         }"
 
         switch packet.stream_index
-          when @video.index then @video.decode packet
-          when @audio.index then @audio.decode packet
-          when @subtt.index then @subtt.decode packet
-        packet.free()
+          when @video.index
+            @video.decode packet, (ret, got, frame, packet) =>
+              if ret >= 0 and got
+                frame.pts =
+                  if frame.pts isnt FFmpeg.AV_NOPTS_VALUE then frame.pts
+                  else if frame.pkt_pts isnt FFmpeg.AV_NOPTS_VALUE then frame.pkt_pts
+                  else if @frame_next_pts isnt FFmpeg.AV_NOPTS_VALUE then @frame_next_pts
+                @frame_next_pts = frame.pts + frame.nb_samples if frame.pts isnt FFmpeg.AV_NOPTS_VALUE
+
+                data = frame.data[0]
+                size = FFmpeg.getSamplesBufferSize null, frame.channels, frame.nb_samples, frame.format, 1
+
+                console.log " #audio {
+                  pts: #{frame.pts},
+                  format: #{frame.format},
+                  channels: #{frame.channels},
+                  sample_rate: #{frame.sample_rate},
+                  nb_samples: #{frame.nb_samples}
+                }"
+
+                packet.free()
+                frame.unref()
+          when @audio.index
+            @audio.decode packet, (ret, got, frame, packet) =>
+              if ret >= 0 and got
+                frame.pts =
+                  if @options.decoder_reorder_pts is -1 then frame.best_effort_timestamp
+                  else if @options.decoder_reorder_pts then frame.pkt_pts
+                  else frame.pkt_dts
+                frame.sample_aspect_ratio = @format.context.guessSampleAspectRatio @stream, frame
+
+                frame.data[2]
+                frame.linesize[2]
+
+                console.log " #video {
+                  pts: #{frame.pts},
+                  sar: {
+                    num: #{frame.sample_aspect_ratio.num},
+                    den: #{frame.sample_aspect_ratio.den}
+                  },
+                  width: #{frame.width},
+                  height: #{frame.height},
+                  format: #{frame.format},
+                  pkt_pos: #{frame.pkt_pos}
+                }"
+
+                packet.free()
+                frame.unref()
+          when @subtt.index
+            @subtt.decode packet, (ret, got, subtt, packet) =>
+              if ret >= 0 and got
+                subtt.rects.forEach (rect) ->
+                  for c in [0...rect.nb_colors]
+                    r = rect.pict.data[1][4 * c + 0]
+                    g = rect.pict.data[1][4 * c + 0]
+                    b = rect.pict.data[1][4 * c + 0]
+                    a = rect.pict.data[1][4 * c + 0]
+
+                console.log " #subtt {
+                  pts: #{subtt.pts},
+                  format: #{subtt.format}
+                }"
+
+                packet.free()
+                subtt.free()
 
     null
 

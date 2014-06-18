@@ -3,6 +3,7 @@
 
 #include <node.h>
 #include <nan.h>
+#include <list>
 
 extern "C" {
 #include "libavcodec/avcodec.h"
@@ -34,6 +35,63 @@ namespace FFmpeg {
       virtual ~AVPacketWrapper();
       ::AVPacket *_this;
       bool _allocated;
+    };
+
+    class AVDecodeAudioWorker : public NanAsyncWorker {
+    public:
+      explicit AVDecodeAudioWorker(std::list<NanAsyncWorker*> &q,
+                                   ::AVCodecContext *ctx,
+                                   ::AVFrame *pic,
+                                   ::AVPacket *pkt,
+                                   NanCallback *callback);
+      virtual ~AVDecodeAudioWorker();
+      void Execute();
+      void HandleOKCallback();
+    private:
+      std::list<NanAsyncWorker*> &queue;
+      ::AVCodecContext *context;
+      ::AVFrame *frame;
+      ::AVPacket *packet;
+      int result;
+      int got_frame_ptr;
+    };
+
+    class AVDecodeVideoWorker : public NanAsyncWorker {
+    public:
+      explicit AVDecodeVideoWorker(std::list<NanAsyncWorker*> &q,
+                                   ::AVCodecContext *ctx,
+                                   ::AVFrame *pic,
+                                   ::AVPacket *pkt,
+                                   NanCallback *callback);
+      virtual ~AVDecodeVideoWorker();
+      void Execute();
+      void HandleOKCallback();
+    private:
+      std::list<NanAsyncWorker*> &queue;
+      ::AVCodecContext *context;
+      ::AVFrame *frame;
+      ::AVPacket *packet;
+      int result;
+      int got_frame_ptr;
+    };
+
+    class AVDecodeSubtitleWorker : public NanAsyncWorker {
+    public:
+      explicit AVDecodeSubtitleWorker(std::list<NanAsyncWorker*> &q,
+                                      ::AVCodecContext *ctx,
+                                      ::AVSubtitle *sub,
+                                      ::AVPacket *pkt,
+                                      NanCallback *callback);
+      virtual ~AVDecodeSubtitleWorker();
+      void Execute();
+      void HandleOKCallback();
+    private:
+      std::list<NanAsyncWorker*> &queue;
+      ::AVCodecContext *context;
+      ::AVSubtitle *subtt;
+      ::AVPacket *packet;
+      int result;
+      int got_subtt_ptr;
     };
 
     class AVCodecContextWrapper : public node::ObjectWrap {
@@ -77,6 +135,7 @@ namespace FFmpeg {
       virtual ~AVCodecContextWrapper();
       ::AVCodecContext *_this;
       bool _allocated;
+      std::list<NanAsyncWorker*> _async_queue;
     };
 
     class AVCodecWrapper : public node::ObjectWrap {

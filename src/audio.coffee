@@ -62,31 +62,14 @@ class Audio
 
     console.log "audio.channel() #{@index} -> #{index}"
 
-  decode: (packet) ->
+  decode: (packet, callback) ->
     frame = new FFmpeg.AVFrame
 
     {sample_rate, channels, channel_layout, sample_fmt} = @context
 
     # @context.flushBuffers()
-    [ret, got] = @context.decodeAudio frame, packet
-    return if ret < 0
-
-    if got
-      frame.pts =
-        if frame.pts isnt FFmpeg.AV_NOPTS_VALUE then frame.pts
-        else if frame.pkt_pts isnt FFmpeg.AV_NOPTS_VALUE then frame.pkt_pts
-        else if @frame_next_pts isnt FFmpeg.AV_NOPTS_VALUE then @frame_next_pts
-      @frame_next_pts = frame.pts + frame.nb_samples if frame.pts isnt FFmpeg.AV_NOPTS_VALUE
-
-      data = frame.data[0]
-      size = FFmpeg.getSamplesBufferSize null, frame.channels, frame.nb_samples, frame.format, 1
-
-      console.log " #audio {
-        pts: #{frame.pts},
-        format: #{frame.format},
-        channels: #{frame.channels},
-        sample_rate: #{frame.sample_rate},
-        nb_samples: #{frame.nb_samples}
-      }"
-
-      frame.unref()
+    if typeof callback is 'function'
+      @context.decodeAudio frame, packet, callback
+    else
+      [ret, got] = @context.decodeAudio frame, packet
+      [ret, got, frame, packet]

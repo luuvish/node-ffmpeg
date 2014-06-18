@@ -122,8 +122,6 @@ namespace FFmpeg {
       bool _allocated;
     };
 
-    class AVFormatContextWrapper;
-
     class AVReadFrameWorker : public NanAsyncWorker {
     public:
       explicit AVReadFrameWorker(std::list<NanAsyncWorker*> &q,

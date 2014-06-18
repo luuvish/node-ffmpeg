@@ -61,24 +61,12 @@ class Subtitle
 
     console.log "subtt.channel() #{@index} -> #{index}"
 
-  decode: (packet) ->
+  decode: (packet, callback) ->
     subtt = new FFmpeg.AVSubtitle
 
     # @context.flushBuffers()
-    [ret, got] = @context.decodeSubtitle subtt, packet
-    return if ret < 0
-
-    if got
-      subtt.rects.forEach (rect) ->
-        for c in [0...rect.nb_colors]
-          r = rect.pict.data[1][4 * c + 0]
-          g = rect.pict.data[1][4 * c + 0]
-          b = rect.pict.data[1][4 * c + 0]
-          a = rect.pict.data[1][4 * c + 0]
-
-      console.log " #subtt {
-        pts: #{subtt.pts},
-        format: #{subtt.format}
-      }"
-
-      subtt.free()
+    if typeof callback is 'function'
+      @context.decodeSubtitle subtt, packet, callback
+    else
+      [ret, got] = @context.decodeSubtitle subtt, packet
+      [ret, got, subtt, packet]

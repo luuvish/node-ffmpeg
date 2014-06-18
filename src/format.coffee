@@ -68,5 +68,5 @@ class Format
     if typeof callback is 'function'
       @context.readFrame packet, callback
     else
-      @context.readFrame packet
-      packet
+      ret = @context.readFrame packet
+      [ret, packet]

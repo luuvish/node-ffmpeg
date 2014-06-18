@@ -153,6 +153,114 @@ NAN_GETTER(FFmpeg::AVCodec::AVPacketWrapper::GetPos) {
 }
 
 
+FFmpeg::AVCodec::AVDecodeAudioWorker::
+AVDecodeAudioWorker(std::list<NanAsyncWorker*> &q,
+                    ::AVCodecContext *ctx,
+                    ::AVFrame *pic, ::AVPacket *pkt,
+                    NanCallback *callback)
+  : NanAsyncWorker(callback), queue(q), context(ctx), frame(pic), packet(pkt) {
+}
+
+FFmpeg::AVCodec::AVDecodeAudioWorker::~AVDecodeAudioWorker() {
+}
+
+void FFmpeg::AVCodec::AVDecodeAudioWorker::Execute() {
+  result = avcodec_decode_audio4(context, frame, &got_frame_ptr, packet);
+}
+
+void FFmpeg::AVCodec::AVDecodeAudioWorker::HandleOKCallback() {
+  NanScope();
+
+  queue.pop_front();
+  if (queue.size() > 0)
+      NanAsyncQueueWorker(queue.front());
+
+  Handle<Value> pkt = AVCodec::AVPacketWrapper::newInstance(packet);
+  Handle<Value> pic = AVUtil::AVFrameWrapper::newInstance(frame);
+
+  const int argc = 4;
+  Handle<Value> argv[argc] = {
+    NanNew<Number>(result),
+    NanNew<Number>(got_frame_ptr),
+    pic,
+    pkt
+  };
+  callback->Call(argc, argv);
+}
+
+
+FFmpeg::AVCodec::AVDecodeVideoWorker::
+AVDecodeVideoWorker(std::list<NanAsyncWorker*> &q,
+                    ::AVCodecContext *ctx,
+                    ::AVFrame *pic, ::AVPacket *pkt,
+                    NanCallback *callback)
+  : NanAsyncWorker(callback), queue(q), context(ctx), frame(pic), packet(pkt) {
+}
+
+FFmpeg::AVCodec::AVDecodeVideoWorker::~AVDecodeVideoWorker() {
+}
+
+void FFmpeg::AVCodec::AVDecodeVideoWorker::Execute() {
+  result = avcodec_decode_video2(context, frame, &got_frame_ptr, packet);
+}
+
+void FFmpeg::AVCodec::AVDecodeVideoWorker::HandleOKCallback() {
+  NanScope();
+
+  queue.pop_front();
+  if (queue.size() > 0)
+      NanAsyncQueueWorker(queue.front());
+
+  Handle<Value> pkt = AVCodec::AVPacketWrapper::newInstance(packet);
+  Handle<Value> pic = AVUtil::AVFrameWrapper::newInstance(frame);
+
+  const int argc = 4;
+  Handle<Value> argv[argc] = {
+    NanNew<Number>(result),
+    NanNew<Number>(got_frame_ptr),
+    pic,
+    pkt
+  };
+  callback->Call(argc, argv);
+}
+
+
+FFmpeg::AVCodec::AVDecodeSubtitleWorker::
+AVDecodeSubtitleWorker(std::list<NanAsyncWorker*> &q,
+                       ::AVCodecContext *ctx,
+                       ::AVSubtitle *sub, ::AVPacket *pkt,
+                       NanCallback *callback)
+  : NanAsyncWorker(callback), queue(q), context(ctx), subtt(sub), packet(pkt) {
+}
+
+FFmpeg::AVCodec::AVDecodeSubtitleWorker::~AVDecodeSubtitleWorker() {
+}
+
+void FFmpeg::AVCodec::AVDecodeSubtitleWorker::Execute() {
+  result = avcodec_decode_subtitle2(context, subtt, &got_subtt_ptr, packet);
+}
+
+void FFmpeg::AVCodec::AVDecodeSubtitleWorker::HandleOKCallback() {
+  NanScope();
+
+  queue.pop_front();
+  if (queue.size() > 0)
+      NanAsyncQueueWorker(queue.front());
+
+  Handle<Value> pkt = AVCodec::AVPacketWrapper::newInstance(packet);
+  Handle<Value> sub = AVCodec::AVSubtitleWrapper::newInstance(subtt);
+
+  const int argc = 4;
+  Handle<Value> argv[argc] = {
+    NanNew<Number>(result),
+    NanNew<Number>(got_subtt_ptr),
+    sub,
+    pkt
+  };
+  callback->Call(argc, argv);
+}
+
+
 Persistent<FunctionTemplate>
 FFmpeg::AVCodec::AVCodecContextWrapper::constructor;
 
@@ -330,6 +438,21 @@ NAN_METHOD(FFmpeg::AVCodec::AVCodecContextWrapper::DecodeAudio) {
 
   AVCodecContextWrapper *obj =
     ObjectWrap::Unwrap<AVCodecContextWrapper>(args.This());
+
+  if (args[2]->IsFunction()) {
+    NanCallback *callback = new NanCallback(Local<Function>::Cast(args[2]));
+    AVDecodeAudioWorker *worker =
+      new AVDecodeAudioWorker(obj->_async_queue,
+                              obj->_this,
+                              frame,
+                              const_cast<::AVPacket*>(avpkt),
+                              callback);
+    obj->_async_queue.push_back(worker);
+    if (obj->_async_queue.size() == 1)
+      NanAsyncQueueWorker(obj->_async_queue.front());
+    NanReturnUndefined();
+  }
+
   int ret = avcodec_decode_audio4(obj->_this, frame, &got_frame_ptr, avpkt);
   Handle<Array> rets = NanNew<Array>(2);
   rets->Set(0, NanNew<Number>(ret));
@@ -355,6 +478,21 @@ NAN_METHOD(FFmpeg::AVCodec::AVCodecContextWrapper::DecodeVideo) {
 
   AVCodecContextWrapper *obj =
     ObjectWrap::Unwrap<AVCodecContextWrapper>(args.This());
+
+  if (args[2]->IsFunction()) {
+    NanCallback *callback = new NanCallback(Local<Function>::Cast(args[2]));
+    AVDecodeVideoWorker *worker =
+      new AVDecodeVideoWorker(obj->_async_queue,
+                              obj->_this,
+                              picture,
+                              const_cast<::AVPacket*>(avpkt),
+                              callback);
+    obj->_async_queue.push_back(worker);
+    if (obj->_async_queue.size() == 1)
+      NanAsyncQueueWorker(obj->_async_queue.front());
+    NanReturnUndefined();
+  }
+
   int ret = avcodec_decode_video2(obj->_this, picture, &got_picture_ptr, avpkt);
   Handle<Array> rets = NanNew<Array>(2);
   rets->Set(0, NanNew<Number>(ret));
@@ -380,6 +518,18 @@ NAN_METHOD(FFmpeg::AVCodec::AVCodecContextWrapper::DecodeSubtitle) {
 
   AVCodecContextWrapper *obj =
     ObjectWrap::Unwrap<AVCodecContextWrapper>(args.This());
+
+  if (args[2]->IsFunction()) {
+    NanCallback *callback = new NanCallback(Local<Function>::Cast(args[2]));
+    AVDecodeSubtitleWorker *worker =
+      new AVDecodeSubtitleWorker(obj->_async_queue,
+                                 obj->_this, subtitle, avpkt, callback);
+    obj->_async_queue.push_back(worker);
+    if (obj->_async_queue.size() == 1)
+      NanAsyncQueueWorker(obj->_async_queue.front());
+    NanReturnUndefined();
+  }
+
   int ret = avcodec_decode_subtitle2(obj->_this, subtitle, &got_sub_ptr, avpkt);
   Handle<Array> rets = NanNew<Array>(2);
   rets->Set(0, NanNew<Number>(ret));
