@@ -5,6 +5,7 @@ module.exports =
 class Format
   constructor: (@options) ->
     @context = new FFmpeg.AVFormatContext
+    @packets = (new FFmpeg.AVPacket for i in [0...10])
 
   open: (@filename, options={}) ->
     return if not @context or @context.openInput(@filename, options) < 0
@@ -56,12 +57,27 @@ class Format
 
     {video_index, audio_index, subtt_index}
 
-  read: (callback) ->
-    packet = new FFmpeg.AVPacket
-    packet.free()
+  getPacket: ->
+    packet = @packets.shift()
+    packet?.free()
+    packet
 
-    if typeof callback is 'function'
-      @context.readFrame packet, callback
-    else
+  putPacket: (packets...) ->
+    packet?.free() for packet in packets
+    @packets.push packets...
+
+  read: (args) ->
+    unless typeof args is 'function'
+      packet = args
       ret = @context.readFrame packet
-      [ret, packet]
+      return [ret, packet]
+
+    callback = args
+    packet = @getPacket()
+
+    return setTimeout (=> @read callback), 30 unless packet?
+
+    donePacket = () => @putPacket packet
+
+    @context.readFrame packet, (ret, packet) ->
+      if ret >= 0 then callback donePacket, packet else donePacket()

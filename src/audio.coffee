@@ -4,6 +4,8 @@ FFmpeg = require './ffmpeg'
 module.exports =
 class Audio
   constructor: (@format) ->
+    @frames = (new FFmpeg.AVFrame for i in [0...5])
+
     @options = @format.options
 
     @index = -1
@@ -32,7 +34,7 @@ class Audio
     @stream.discard = FFmpeg.AVDISCARD_DEFAULT
 
   close: ->
-    @stream.discard = FFmpeg.AVDISCARD_ALL
+    @stream?.discard = FFmpeg.AVDISCARD_ALL
     @context.close() if @context?.is_open
 
     @index = -1
@@ -40,37 +42,79 @@ class Audio
     @context = null
 
   channel: (video_index) ->
-    index = @index
+    length = @format.context.streams.length
+    index = start = @index
 
-    program = if video_index? then @format.context.findProgramFromStream(null, video_index) else null
+    program = @format.context.findProgramFromStream(null, video_index) if video_index?
     if program
-      for index in [0...program.stream_indexes.length]
-        break if program.stream_indexes[index] is @index
-      index = -1 if index is program.stream_indexes.length
+      length = program.stream_indexes.length
+      for start in [0...length]
+        break if program.stream_indexes[start] is @index
+      start = -1 if start is length
+      index = start
+
+    streamIndex = (index) -> if program? then program.stream_indexes[index] else index
 
     while true
       index += 1
-      if index >= @context.streams.length
-        return if @index is -1
+      if index >= length
+        return if start is -1
         index = 0
-      return if index is @index
-      stream = @format.context.streams[if program? then program.stream_indexes[index] else index]
+      return if index is start
+      stream = @format.context.streams[streamIndex index]
       break if stream.codec.codec_type is FFmpeg.AVMEDIA_TYPE_AUDIO and
                stream.codec.sample_rate isnt 0 and stream.codec.channels isnt 0
 
     @close()
-    @open @format.context.streams[if program? then program.stream_indexes[index] else index]
+    @open(stream) if stream?
 
-    console.log "audio.channel() #{@index} -> #{index}"
+    console.log "audio.channel() #{start} -> #{@index}"
 
-  decode: (packet, callback) ->
-    frame = new FFmpeg.AVFrame
+  getFrame: ->
+    frame = @frames.shift()
+    frame?.unref()
+    frame
 
+  putFrame: (frames...) ->
+    frame?.unref() for frame in frames
+    @frames.push frames...
+
+  decode: (donePacket, packet, args) ->
     {sample_rate, channels, channel_layout, sample_fmt} = @context
 
-    # @context.flushBuffers()
-    if typeof callback is 'function'
-      @context.decodeAudio frame, packet, callback
-    else
+    unless typeof args is 'function'
+      frame = args
       [ret, got] = @context.decodeAudio frame, packet
-      [ret, got, frame, packet]
+      return [ret, got, frame, packet]
+
+    callback = args
+    frame = @getFrame()
+
+    return setTimeout (=> @decode donePacket, packet, callback), 30 unless frame?
+
+    doneFrame = () => @putFrame frame
+
+    # @context.flushBuffers()
+    @context.decodeAudio frame, packet, (ret, got, frame, packet) ->
+      donePacket()
+      if ret >= 0 and got then callback doneFrame, frame else doneFrame()
+
+  render: (done, frame) ->
+    frame.pts =
+      if frame.pts isnt FFmpeg.AV_NOPTS_VALUE then frame.pts
+      else if frame.pkt_pts isnt FFmpeg.AV_NOPTS_VALUE then frame.pkt_pts
+      else if @frame_next_pts isnt FFmpeg.AV_NOPTS_VALUE then @frame_next_pts
+    @frame_next_pts = frame.pts + frame.nb_samples if frame.pts isnt FFmpeg.AV_NOPTS_VALUE
+
+    data = frame.data[0]
+    size = FFmpeg.getSamplesBufferSize null, frame.channels, frame.nb_samples, frame.format, 1
+
+    console.log " #audio {
+      pts: #{frame.pts},
+      format: #{frame.format},
+      channels: #{frame.channels},
+      sample_rate: #{frame.sample_rate},
+      nb_samples: #{frame.nb_samples}
+    }"
+
+    done()
