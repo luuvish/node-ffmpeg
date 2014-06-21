@@ -4,24 +4,24 @@ using namespace node;
 using namespace v8;
 
 
+inline void
+SetContant(Handle<Object> const &target, const char *symbol, int value) {
+  target->Set(NanNew<String>(symbol), NanNew<Number>(value));
+}
+
+
 void FFmpeg::AVUtil::Initialize(Handle<Object> target) {
   NanScope();
 
   AVFrameWrapper::Initialize(target);
 
   // libavutil/avutil.h
-  target->Set(NanNew<String>("AVMEDIA_TYPE_UNKNOWN"),
-              NanNew<Number>(::AVMEDIA_TYPE_UNKNOWN));
-  target->Set(NanNew<String>("AVMEDIA_TYPE_VIDEO"),
-              NanNew<Number>(::AVMEDIA_TYPE_VIDEO));
-  target->Set(NanNew<String>("AVMEDIA_TYPE_AUDIO"),
-              NanNew<Number>(::AVMEDIA_TYPE_AUDIO));
-  target->Set(NanNew<String>("AVMEDIA_TYPE_DATA"),
-              NanNew<Number>(::AVMEDIA_TYPE_DATA));
-  target->Set(NanNew<String>("AVMEDIA_TYPE_SUBTITLE"),
-              NanNew<Number>(::AVMEDIA_TYPE_SUBTITLE));
-  target->Set(NanNew<String>("AVMEDIA_TYPE_ATTACHMENT"),
-              NanNew<Number>(::AVMEDIA_TYPE_ATTACHMENT));
+  SetContant(target, "AVMEDIA_TYPE_UNKNOWN", ::AVMEDIA_TYPE_UNKNOWN);
+  SetContant(target, "AVMEDIA_TYPE_VIDEO", ::AVMEDIA_TYPE_VIDEO);
+  SetContant(target, "AVMEDIA_TYPE_AUDIO", ::AVMEDIA_TYPE_AUDIO);
+  SetContant(target, "AVMEDIA_TYPE_DATA", ::AVMEDIA_TYPE_DATA);
+  SetContant(target, "AVMEDIA_TYPE_SUBTITLE", ::AVMEDIA_TYPE_SUBTITLE);
+  SetContant(target, "AVMEDIA_TYPE_ATTACHMENT", ::AVMEDIA_TYPE_ATTACHMENT);
 
   target->Set(NanNew<String>("AV_NOPTS_VALUE"), NanNew<Number>(AV_NOPTS_VALUE));
   target->Set(NanNew<String>("AV_TIME_BASE"), NanNew<Number>(AV_TIME_BASE));
@@ -37,28 +37,17 @@ void FFmpeg::AVUtil::Initialize(Handle<Object> target) {
                   GetDefaultChannelLayout);
 
   // libavutil/samplefmt.h
-  target->Set(NanNew<String>("AV_SAMPLE_FMT_NONE"),
-              NanNew<Number>(::AV_SAMPLE_FMT_NONE));
-  target->Set(NanNew<String>("AV_SAMPLE_FMT_U8"),
-              NanNew<Number>(::AV_SAMPLE_FMT_U8));
-  target->Set(NanNew<String>("AV_SAMPLE_FMT_S16"),
-              NanNew<Number>(::AV_SAMPLE_FMT_S16));
-  target->Set(NanNew<String>("AV_SAMPLE_FMT_S32"),
-              NanNew<Number>(::AV_SAMPLE_FMT_S32));
-  target->Set(NanNew<String>("AV_SAMPLE_FMT_FLT"),
-              NanNew<Number>(::AV_SAMPLE_FMT_FLT));
-  target->Set(NanNew<String>("AV_SAMPLE_FMT_DBL"),
-              NanNew<Number>(::AV_SAMPLE_FMT_DBL));
-  target->Set(NanNew<String>("AV_SAMPLE_FMT_U8P"),
-              NanNew<Number>(::AV_SAMPLE_FMT_U8P));
-  target->Set(NanNew<String>("AV_SAMPLE_FMT_S16P"),
-              NanNew<Number>(::AV_SAMPLE_FMT_S16P));
-  target->Set(NanNew<String>("AV_SAMPLE_FMT_S32P"),
-              NanNew<Number>(::AV_SAMPLE_FMT_S32P));
-  target->Set(NanNew<String>("AV_SAMPLE_FMT_FLTP"),
-              NanNew<Number>(::AV_SAMPLE_FMT_FLTP));
-  target->Set(NanNew<String>("AV_SAMPLE_FMT_DBLP"),
-              NanNew<Number>(::AV_SAMPLE_FMT_DBLP));
+  SetContant(target, "AV_SAMPLE_FMT_NONE", ::AV_SAMPLE_FMT_NONE);
+  SetContant(target, "AV_SAMPLE_FMT_U8", ::AV_SAMPLE_FMT_U8);
+  SetContant(target, "AV_SAMPLE_FMT_S16", ::AV_SAMPLE_FMT_S16);
+  SetContant(target, "AV_SAMPLE_FMT_S32", ::AV_SAMPLE_FMT_S32);
+  SetContant(target, "AV_SAMPLE_FMT_FLT", ::AV_SAMPLE_FMT_FLT);
+  SetContant(target, "AV_SAMPLE_FMT_DBL", ::AV_SAMPLE_FMT_DBL);
+  SetContant(target, "AV_SAMPLE_FMT_U8P", ::AV_SAMPLE_FMT_U8P);
+  SetContant(target, "AV_SAMPLE_FMT_S16P", ::AV_SAMPLE_FMT_S16P);
+  SetContant(target, "AV_SAMPLE_FMT_S32P", ::AV_SAMPLE_FMT_S32P);
+  SetContant(target, "AV_SAMPLE_FMT_FLTP", ::AV_SAMPLE_FMT_FLTP);
+  SetContant(target, "AV_SAMPLE_FMT_DBLP", ::AV_SAMPLE_FMT_DBLP);
 
   NODE_SET_METHOD(target, "getPackedSampleFmt", GetPackedSampleFmt);
   NODE_SET_METHOD(target, "getPlanerSampleFmt", GetPlanarSampleFmt);

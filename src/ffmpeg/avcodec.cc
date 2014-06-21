@@ -5,6 +5,12 @@ using namespace node;
 using namespace v8;
 
 
+inline void
+SetContant(Handle<Object> const &target, const char *symbol, int value) {
+  target->Set(NanNew<String>(symbol), NanNew<Number>(value));
+}
+
+
 void FFmpeg::AVCodec::Initialize(Handle<Object> target) {
   NanScope();
 
@@ -16,126 +22,70 @@ void FFmpeg::AVCodec::Initialize(Handle<Object> target) {
   AVSubtitleWrapper::Initialize(target);
 
   // libavcodec/avcodec.h
-  target->Set(NanNew<String>("AVDISCARD_NONE"),
-              NanNew<Number>(::AVDISCARD_NONE));
-  target->Set(NanNew<String>("AVDISCARD_DEFAULT"),
-              NanNew<Number>(::AVDISCARD_DEFAULT));
-  target->Set(NanNew<String>("AVDISCARD_NONREF"),
-              NanNew<Number>(::AVDISCARD_NONREF));
-  target->Set(NanNew<String>("AVDISCARD_BIDIR"),
-              NanNew<Number>(::AVDISCARD_BIDIR));
-  target->Set(NanNew<String>("AVDISCARD_NONKEY"),
-              NanNew<Number>(::AVDISCARD_NONKEY));
-  target->Set(NanNew<String>("AVDISCARD_ALL"),
-              NanNew<Number>(::AVDISCARD_ALL));
+  SetContant(target, "AVDISCARD_NONE", ::AVDISCARD_NONE);
+  SetContant(target, "AVDISCARD_DEFAULT", ::AVDISCARD_DEFAULT);
+  SetContant(target, "AVDISCARD_NONREF", ::AVDISCARD_NONREF);
+  SetContant(target, "AVDISCARD_BIDIR", ::AVDISCARD_BIDIR);
+  SetContant(target, "AVDISCARD_NONKEY", ::AVDISCARD_NONKEY);
+  SetContant(target, "AVDISCARD_ALL", ::AVDISCARD_ALL);
 
-  target->Set(NanNew<String>("CODEC_FLAG_UNALIGNED"),
-              NanNew<Number>(CODEC_FLAG_UNALIGNED));
-  target->Set(NanNew<String>("CODEC_FLAG_QSCALE"),
-              NanNew<Number>(CODEC_FLAG_QSCALE));
-  target->Set(NanNew<String>("CODEC_FLAG_4MV"),
-              NanNew<Number>(CODEC_FLAG_4MV));
-  target->Set(NanNew<String>("CODEC_FLAG_OUTPUT_CORRUPT"),
-              NanNew<Number>(CODEC_FLAG_OUTPUT_CORRUPT));
-  target->Set(NanNew<String>("CODEC_FLAG_QPEL"),
-              NanNew<Number>(CODEC_FLAG_QPEL));
-  target->Set(NanNew<String>("CODEC_FLAG_GMC"),
-              NanNew<Number>(CODEC_FLAG_GMC));
-  target->Set(NanNew<String>("CODEC_FLAG_MV0"),
-              NanNew<Number>(CODEC_FLAG_MV0));
-  target->Set(NanNew<String>("CODEC_FLAG_INPUT_PRESERVED"),
-              NanNew<Number>(CODEC_FLAG_INPUT_PRESERVED));
-  target->Set(NanNew<String>("CODEC_FLAG_PASS1"),
-              NanNew<Number>(CODEC_FLAG_PASS1));
-  target->Set(NanNew<String>("CODEC_FLAG_PASS2"),
-              NanNew<Number>(CODEC_FLAG_PASS2));
-  target->Set(NanNew<String>("CODEC_FLAG_GRAY"),
-              NanNew<Number>(CODEC_FLAG_GRAY));
-  target->Set(NanNew<String>("CODEC_FLAG_EMU_EDGE"),
-              NanNew<Number>(CODEC_FLAG_EMU_EDGE));
-  target->Set(NanNew<String>("CODEC_FLAG_PSNR"),
-              NanNew<Number>(CODEC_FLAG_PSNR));
-  target->Set(NanNew<String>("CODEC_FLAG_TRUNCATED"),
-              NanNew<Number>(CODEC_FLAG_TRUNCATED));
-  target->Set(NanNew<String>("CODEC_FLAG_NORMALIZE_AQP"),
-              NanNew<Number>(CODEC_FLAG_NORMALIZE_AQP));
-  target->Set(NanNew<String>("CODEC_FLAG_INTERLACED_DCT"),
-              NanNew<Number>(CODEC_FLAG_INTERLACED_DCT));
-  target->Set(NanNew<String>("CODEC_FLAG_LOW_DELAY"),
-              NanNew<Number>(CODEC_FLAG_LOW_DELAY));
-  target->Set(NanNew<String>("CODEC_FLAG_GLOBAL_HEADER"),
-              NanNew<Number>(CODEC_FLAG_GLOBAL_HEADER));
-  target->Set(NanNew<String>("CODEC_FLAG_BITEXACT"),
-              NanNew<Number>(CODEC_FLAG_BITEXACT));
-  target->Set(NanNew<String>("CODEC_FLAG_AC_PRED"),
-              NanNew<Number>(CODEC_FLAG_AC_PRED));
-  target->Set(NanNew<String>("CODEC_FLAG_LOOP_FILTER"),
-              NanNew<Number>(CODEC_FLAG_LOOP_FILTER));
-  target->Set(NanNew<String>("CODEC_FLAG_INTERLACED_ME"),
-              NanNew<Number>(CODEC_FLAG_INTERLACED_ME));
-  target->Set(NanNew<String>("CODEC_FLAG_CLOSED_GOP"),
-              NanNew<Number>(CODEC_FLAG_CLOSED_GOP));
+  SetContant(target, "CODEC_FLAG_UNALIGNED", CODEC_FLAG_UNALIGNED);
+  SetContant(target, "CODEC_FLAG_QSCALE", CODEC_FLAG_QSCALE);
+  SetContant(target, "CODEC_FLAG_4MV", CODEC_FLAG_4MV);
+  SetContant(target, "CODEC_FLAG_OUTPUT_CORRUPT", CODEC_FLAG_OUTPUT_CORRUPT);
+  SetContant(target, "CODEC_FLAG_QPEL", CODEC_FLAG_QPEL);
+  SetContant(target, "CODEC_FLAG_GMC", CODEC_FLAG_GMC);
+  SetContant(target, "CODEC_FLAG_MV0", CODEC_FLAG_MV0);
+  SetContant(target, "CODEC_FLAG_INPUT_PRESERVED", CODEC_FLAG_INPUT_PRESERVED);
+  SetContant(target, "CODEC_FLAG_PASS1", CODEC_FLAG_PASS1);
+  SetContant(target, "CODEC_FLAG_PASS2", CODEC_FLAG_PASS2);
+  SetContant(target, "CODEC_FLAG_GRAY", CODEC_FLAG_GRAY);
+  SetContant(target, "CODEC_FLAG_EMU_EDGE", CODEC_FLAG_EMU_EDGE);
+  SetContant(target, "CODEC_FLAG_PSNR", CODEC_FLAG_PSNR);
+  SetContant(target, "CODEC_FLAG_TRUNCATED", CODEC_FLAG_TRUNCATED);
+  SetContant(target, "CODEC_FLAG_NORMALIZE_AQP", CODEC_FLAG_NORMALIZE_AQP);
+  SetContant(target, "CODEC_FLAG_INTERLACED_DCT", CODEC_FLAG_INTERLACED_DCT);
+  SetContant(target, "CODEC_FLAG_LOW_DELAY", CODEC_FLAG_LOW_DELAY);
+  SetContant(target, "CODEC_FLAG_GLOBAL_HEADER", CODEC_FLAG_GLOBAL_HEADER);
+  SetContant(target, "CODEC_FLAG_BITEXACT", CODEC_FLAG_BITEXACT);
+  SetContant(target, "CODEC_FLAG_AC_PRED", CODEC_FLAG_AC_PRED);
+  SetContant(target, "CODEC_FLAG_LOOP_FILTER", CODEC_FLAG_LOOP_FILTER);
+  SetContant(target, "CODEC_FLAG_INTERLACED_ME", CODEC_FLAG_INTERLACED_ME);
+  SetContant(target, "CODEC_FLAG_CLOSED_GOP", CODEC_FLAG_CLOSED_GOP);
 
-  target->Set(NanNew<String>("CODEC_FLAG2_FAST"),
-              NanNew<Number>(CODEC_FLAG2_FAST));
-  target->Set(NanNew<String>("CODEC_FLAG2_NO_OUTPUT"),
-              NanNew<Number>(CODEC_FLAG2_NO_OUTPUT));
-  target->Set(NanNew<String>("CODEC_FLAG2_LOCAL_HEADER"),
-              NanNew<Number>(CODEC_FLAG2_LOCAL_HEADER));
-  target->Set(NanNew<String>("CODEC_FLAG2_DROP_FRAME_TIMECODE"),
-              NanNew<Number>(CODEC_FLAG2_DROP_FRAME_TIMECODE));
-  target->Set(NanNew<String>("CODEC_FLAG2_IGNORE_CROP"),
-              NanNew<Number>(CODEC_FLAG2_IGNORE_CROP));
-  target->Set(NanNew<String>("CODEC_FLAG2_CHUNKS"),
-              NanNew<Number>(CODEC_FLAG2_CHUNKS));
-  target->Set(NanNew<String>("CODEC_FLAG2_SHOW_ALL"),
-              NanNew<Number>(CODEC_FLAG2_SHOW_ALL));
+  SetContant(target, "CODEC_FLAG2_FAST", CODEC_FLAG2_FAST);
+  SetContant(target, "CODEC_FLAG2_NO_OUTPUT", CODEC_FLAG2_NO_OUTPUT);
+  SetContant(target, "CODEC_FLAG2_LOCAL_HEADER", CODEC_FLAG2_LOCAL_HEADER);
+  SetContant(target, "CODEC_FLAG2_DROP_FRAME_TIMECODE",
+                     CODEC_FLAG2_DROP_FRAME_TIMECODE);
+  SetContant(target, "CODEC_FLAG2_IGNORE_CROP", CODEC_FLAG2_IGNORE_CROP);
+  SetContant(target, "CODEC_FLAG2_CHUNKS", CODEC_FLAG2_CHUNKS);
+  SetContant(target, "CODEC_FLAG2_SHOW_ALL", CODEC_FLAG2_SHOW_ALL);
 
-  target->Set(NanNew<String>("CODEC_CAP_DRAW_HORIZ_BAND"),
-              NanNew<Number>(CODEC_CAP_DRAW_HORIZ_BAND));
-  target->Set(NanNew<String>("CODEC_CAP_DR1"),
-              NanNew<Number>(CODEC_CAP_DR1));
-  target->Set(NanNew<String>("CODEC_CAP_TRUNCATED"),
-              NanNew<Number>(CODEC_CAP_TRUNCATED));
-  target->Set(NanNew<String>("CODEC_CAP_HWACCEL"),
-              NanNew<Number>(CODEC_CAP_HWACCEL));
-  target->Set(NanNew<String>("CODEC_CAP_DELAY"),
-              NanNew<Number>(CODEC_CAP_DELAY));
-  target->Set(NanNew<String>("CODEC_CAP_SMALL_LAST_FRAME"),
-              NanNew<Number>(CODEC_CAP_SMALL_LAST_FRAME));
-  target->Set(NanNew<String>("CODEC_CAP_HWACCEL_VDPAU"),
-              NanNew<Number>(CODEC_CAP_HWACCEL_VDPAU));
-  target->Set(NanNew<String>("CODEC_CAP_SUBFRAMES"),
-              NanNew<Number>(CODEC_CAP_SUBFRAMES));
-  target->Set(NanNew<String>("CODEC_CAP_EXPERIMENTAL"),
-              NanNew<Number>(CODEC_CAP_EXPERIMENTAL));
-  target->Set(NanNew<String>("CODEC_CAP_CHANNEL_CONF"),
-              NanNew<Number>(CODEC_CAP_CHANNEL_CONF));
-  target->Set(NanNew<String>("CODEC_CAP_NEG_LINESIZES"),
-              NanNew<Number>(CODEC_CAP_NEG_LINESIZES));
-  target->Set(NanNew<String>("CODEC_CAP_FRAME_THREADS"),
-              NanNew<Number>(CODEC_CAP_FRAME_THREADS));
-  target->Set(NanNew<String>("CODEC_CAP_SLICE_THREADS"),
-              NanNew<Number>(CODEC_CAP_SLICE_THREADS));
-  target->Set(NanNew<String>("CODEC_CAP_PARAM_CHANGE"),
-              NanNew<Number>(CODEC_CAP_PARAM_CHANGE));
-  target->Set(NanNew<String>("CODEC_CAP_AUTO_THREADS"),
-              NanNew<Number>(CODEC_CAP_AUTO_THREADS));
-  target->Set(NanNew<String>("CODEC_CAP_VARIABLE_FRAME_SIZE"),
-              NanNew<Number>(CODEC_CAP_VARIABLE_FRAME_SIZE));
-  target->Set(NanNew<String>("CODEC_CAP_INTRA_ONLY"),
-              NanNew<Number>(CODEC_CAP_INTRA_ONLY));
-  target->Set(NanNew<String>("CODEC_CAP_LOSSLESS"),
-              NanNew<Number>(CODEC_CAP_LOSSLESS));
+  SetContant(target, "CODEC_CAP_DRAW_HORIZ_BAND", CODEC_CAP_DRAW_HORIZ_BAND);
+  SetContant(target, "CODEC_CAP_DR1", CODEC_CAP_DR1);
+  SetContant(target, "CODEC_CAP_TRUNCATED", CODEC_CAP_TRUNCATED);
+  SetContant(target, "CODEC_CAP_HWACCEL", CODEC_CAP_HWACCEL);
+  SetContant(target, "CODEC_CAP_DELAY", CODEC_CAP_DELAY);
+  SetContant(target, "CODEC_CAP_SMALL_LAST_FRAME", CODEC_CAP_SMALL_LAST_FRAME);
+  SetContant(target, "CODEC_CAP_HWACCEL_VDPAU", CODEC_CAP_HWACCEL_VDPAU);
+  SetContant(target, "CODEC_CAP_SUBFRAMES", CODEC_CAP_SUBFRAMES);
+  SetContant(target, "CODEC_CAP_EXPERIMENTAL", CODEC_CAP_EXPERIMENTAL);
+  SetContant(target, "CODEC_CAP_CHANNEL_CONF", CODEC_CAP_CHANNEL_CONF);
+  SetContant(target, "CODEC_CAP_NEG_LINESIZES", CODEC_CAP_NEG_LINESIZES);
+  SetContant(target, "CODEC_CAP_FRAME_THREADS", CODEC_CAP_FRAME_THREADS);
+  SetContant(target, "CODEC_CAP_SLICE_THREADS", CODEC_CAP_SLICE_THREADS);
+  SetContant(target, "CODEC_CAP_PARAM_CHANGE", CODEC_CAP_PARAM_CHANGE);
+  SetContant(target, "CODEC_CAP_AUTO_THREADS", CODEC_CAP_AUTO_THREADS);
+  SetContant(target, "CODEC_CAP_VARIABLE_FRAME_SIZE",
+                     CODEC_CAP_VARIABLE_FRAME_SIZE);
+  SetContant(target, "CODEC_CAP_INTRA_ONLY", CODEC_CAP_INTRA_ONLY);
+  SetContant(target, "CODEC_CAP_LOSSLESS", CODEC_CAP_LOSSLESS);
 
-  target->Set(NanNew<String>("SUBTITLE_NONE"),
-              NanNew<Number>(::SUBTITLE_NONE));
-  target->Set(NanNew<String>("SUBTITLE_BITMAP"),
-              NanNew<Number>(::SUBTITLE_BITMAP));
-  target->Set(NanNew<String>("SUBTITLE_TEXT"),
-              NanNew<Number>(::SUBTITLE_TEXT));
-  target->Set(NanNew<String>("SUBTITLE_ASS"),
-              NanNew<Number>(::SUBTITLE_ASS));
+  SetContant(target, "SUBTITLE_NONE", ::SUBTITLE_NONE);
+  SetContant(target, "SUBTITLE_BITMAP", ::SUBTITLE_BITMAP);
+  SetContant(target, "SUBTITLE_TEXT", ::SUBTITLE_TEXT);
+  SetContant(target, "SUBTITLE_ASS", ::SUBTITLE_ASS);
 }
 
 
@@ -262,7 +212,7 @@ NAN_GETTER(FFmpeg::AVCodec::AVPacketWrapper::GetPos) {
 
 
 FFmpeg::AVCodec::AVDecodeAudioWorker::
-AVDecodeAudioWorker(std::list<NanAsyncWorker*> &q,
+AVDecodeAudioWorker(std::list<NanAsyncWorker*> *q,
                     ::AVCodecContext *ctx,
                     ::AVFrame *pic, ::AVPacket *pkt,
                     NanCallback *callback)
@@ -279,9 +229,9 @@ void FFmpeg::AVCodec::AVDecodeAudioWorker::Execute() {
 void FFmpeg::AVCodec::AVDecodeAudioWorker::HandleOKCallback() {
   NanScope();
 
-  queue.pop_front();
-  if (queue.size() > 0)
-      NanAsyncQueueWorker(queue.front());
+  queue->pop_front();
+  if (queue->size() > 0)
+      NanAsyncQueueWorker(queue->front());
 
   Handle<Value> pkt = AVCodec::AVPacketWrapper::newInstance(packet);
   Handle<Value> pic = AVUtil::AVFrameWrapper::newInstance(frame);
@@ -298,7 +248,7 @@ void FFmpeg::AVCodec::AVDecodeAudioWorker::HandleOKCallback() {
 
 
 FFmpeg::AVCodec::AVDecodeVideoWorker::
-AVDecodeVideoWorker(std::list<NanAsyncWorker*> &q,
+AVDecodeVideoWorker(std::list<NanAsyncWorker*> *q,
                     ::AVCodecContext *ctx,
                     ::AVFrame *pic, ::AVPacket *pkt,
                     NanCallback *callback)
@@ -315,9 +265,9 @@ void FFmpeg::AVCodec::AVDecodeVideoWorker::Execute() {
 void FFmpeg::AVCodec::AVDecodeVideoWorker::HandleOKCallback() {
   NanScope();
 
-  queue.pop_front();
-  if (queue.size() > 0)
-      NanAsyncQueueWorker(queue.front());
+  queue->pop_front();
+  if (queue->size() > 0)
+      NanAsyncQueueWorker(queue->front());
 
   Handle<Value> pkt = AVCodec::AVPacketWrapper::newInstance(packet);
   Handle<Value> pic = AVUtil::AVFrameWrapper::newInstance(frame);
@@ -334,7 +284,7 @@ void FFmpeg::AVCodec::AVDecodeVideoWorker::HandleOKCallback() {
 
 
 FFmpeg::AVCodec::AVDecodeSubtitleWorker::
-AVDecodeSubtitleWorker(std::list<NanAsyncWorker*> &q,
+AVDecodeSubtitleWorker(std::list<NanAsyncWorker*> *q,
                        ::AVCodecContext *ctx,
                        ::AVSubtitle *sub, ::AVPacket *pkt,
                        NanCallback *callback)
@@ -351,9 +301,9 @@ void FFmpeg::AVCodec::AVDecodeSubtitleWorker::Execute() {
 void FFmpeg::AVCodec::AVDecodeSubtitleWorker::HandleOKCallback() {
   NanScope();
 
-  queue.pop_front();
-  if (queue.size() > 0)
-      NanAsyncQueueWorker(queue.front());
+  queue->pop_front();
+  if (queue->size() > 0)
+      NanAsyncQueueWorker(queue->front());
 
   Handle<Value> pkt = AVCodec::AVPacketWrapper::newInstance(packet);
   Handle<Value> sub = AVCodec::AVSubtitleWrapper::newInstance(subtt);
@@ -550,7 +500,7 @@ NAN_METHOD(FFmpeg::AVCodec::AVCodecContextWrapper::DecodeAudio) {
   if (args[2]->IsFunction()) {
     NanCallback *callback = new NanCallback(Local<Function>::Cast(args[2]));
     AVDecodeAudioWorker *worker =
-      new AVDecodeAudioWorker(obj->_async_queue,
+      new AVDecodeAudioWorker(&obj->_async_queue,
                               obj->_this,
                               frame,
                               const_cast<::AVPacket*>(avpkt),
@@ -590,7 +540,7 @@ NAN_METHOD(FFmpeg::AVCodec::AVCodecContextWrapper::DecodeVideo) {
   if (args[2]->IsFunction()) {
     NanCallback *callback = new NanCallback(Local<Function>::Cast(args[2]));
     AVDecodeVideoWorker *worker =
-      new AVDecodeVideoWorker(obj->_async_queue,
+      new AVDecodeVideoWorker(&obj->_async_queue,
                               obj->_this,
                               picture,
                               const_cast<::AVPacket*>(avpkt),
@@ -630,7 +580,7 @@ NAN_METHOD(FFmpeg::AVCodec::AVCodecContextWrapper::DecodeSubtitle) {
   if (args[2]->IsFunction()) {
     NanCallback *callback = new NanCallback(Local<Function>::Cast(args[2]));
     AVDecodeSubtitleWorker *worker =
-      new AVDecodeSubtitleWorker(obj->_async_queue,
+      new AVDecodeSubtitleWorker(&obj->_async_queue,
                                  obj->_this, subtitle, avpkt, callback);
     obj->_async_queue.push_back(worker);
     if (obj->_async_queue.size() == 1)

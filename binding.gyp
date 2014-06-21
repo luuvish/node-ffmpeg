@@ -10,10 +10,10 @@
     {
       'target_name': 'ffmpeg',
       'sources': [
-        'src/avformat.cc',
-        'src/avcodec.cc',
-        'src/avutil.cc',
-        'src/ffmpeg.cc'
+        'src/ffmpeg/main.cc',
+        'src/ffmpeg/avformat.cc',
+        'src/ffmpeg/avcodec.cc',
+        'src/ffmpeg/avutil.cc'
       ],
       'include_dirs': [
         '<!(node -e \"require(\'nan\')\")',

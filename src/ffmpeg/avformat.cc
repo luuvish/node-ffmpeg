@@ -6,6 +6,12 @@ using namespace node;
 using namespace v8;
 
 
+inline void
+SetContant(Handle<Object> const &target, const char *symbol, int value) {
+  target->Set(NanNew<String>(symbol), NanNew<Number>(value));
+}
+
+
 void FFmpeg::AVFormat::Initialize(Handle<Object> target) {
   NanScope();
 
@@ -17,72 +23,40 @@ void FFmpeg::AVFormat::Initialize(Handle<Object> target) {
   AVFormatContextWrapper::Initialize(target);
 
   // libavformat/avformat.h
-  target->Set(NanNew<String>("AVFMT_NOFILE"),
-              NanNew<Number>(AVFMT_NOFILE));
-  target->Set(NanNew<String>("AVFMT_NEEDNUMBER"),
-              NanNew<Number>(AVFMT_NEEDNUMBER));
-  target->Set(NanNew<String>("AVFMT_SHOW_IDS"),
-              NanNew<Number>(AVFMT_SHOW_IDS));
-  target->Set(NanNew<String>("AVFMT_RAWPICTURE"),
-              NanNew<Number>(AVFMT_RAWPICTURE));
-  target->Set(NanNew<String>("AVFMT_GLOBALHEADER"),
-              NanNew<Number>(AVFMT_GLOBALHEADER));
-  target->Set(NanNew<String>("AVFMT_NOTIMESTAMPS"),
-              NanNew<Number>(AVFMT_NOTIMESTAMPS));
-  target->Set(NanNew<String>("AVFMT_GENERIC_INDEX"),
-              NanNew<Number>(AVFMT_GENERIC_INDEX));
-  target->Set(NanNew<String>("AVFMT_TS_DISCONT"),
-              NanNew<Number>(AVFMT_TS_DISCONT));
-  target->Set(NanNew<String>("AVFMT_VARIABLE_FPS"),
-              NanNew<Number>(AVFMT_VARIABLE_FPS));
-  target->Set(NanNew<String>("AVFMT_NODIMENSIONS"),
-              NanNew<Number>(AVFMT_NODIMENSIONS));
-  target->Set(NanNew<String>("AVFMT_NOSTREAMS"),
-              NanNew<Number>(AVFMT_NOSTREAMS));
-  target->Set(NanNew<String>("AVFMT_NOBINSEARCH"),
-              NanNew<Number>(AVFMT_NOBINSEARCH));
-  target->Set(NanNew<String>("AVFMT_NOGENSEARCH"),
-              NanNew<Number>(AVFMT_NOGENSEARCH));
-  target->Set(NanNew<String>("AVFMT_NO_BYTE_SEEK"),
-              NanNew<Number>(AVFMT_NO_BYTE_SEEK));
-  target->Set(NanNew<String>("AVFMT_ALLOW_FLUSH"),
-              NanNew<Number>(AVFMT_ALLOW_FLUSH));
-  target->Set(NanNew<String>("AVFMT_TS_NONSTRICT"),
-              NanNew<Number>(AVFMT_TS_NONSTRICT));
-  target->Set(NanNew<String>("AVFMT_TS_NEGATIVE"),
-              NanNew<Number>(AVFMT_TS_NEGATIVE));
-  target->Set(NanNew<String>("AVFMT_SEEK_TO_PTS"),
-              NanNew<Number>(AVFMT_SEEK_TO_PTS));
+  SetContant(target, "AVFMT_NOFILE", AVFMT_NOFILE);
+  SetContant(target, "AVFMT_NEEDNUMBER", AVFMT_NEEDNUMBER);
+  SetContant(target, "AVFMT_SHOW_IDS", AVFMT_SHOW_IDS);
+  SetContant(target, "AVFMT_RAWPICTURE", AVFMT_RAWPICTURE);
+  SetContant(target, "AVFMT_GLOBALHEADER", AVFMT_GLOBALHEADER);
+  SetContant(target, "AVFMT_NOTIMESTAMPS", AVFMT_NOTIMESTAMPS);
+  SetContant(target, "AVFMT_GENERIC_INDEX", AVFMT_GENERIC_INDEX);
+  SetContant(target, "AVFMT_TS_DISCONT", AVFMT_TS_DISCONT);
+  SetContant(target, "AVFMT_VARIABLE_FPS", AVFMT_VARIABLE_FPS);
+  SetContant(target, "AVFMT_NODIMENSIONS", AVFMT_NODIMENSIONS);
+  SetContant(target, "AVFMT_NOSTREAMS", AVFMT_NOSTREAMS);
+  SetContant(target, "AVFMT_NOBINSEARCH", AVFMT_NOBINSEARCH);
+  SetContant(target, "AVFMT_NOGENSEARCH", AVFMT_NOGENSEARCH);
+  SetContant(target, "AVFMT_NO_BYTE_SEEK", AVFMT_NO_BYTE_SEEK);
+  SetContant(target, "AVFMT_ALLOW_FLUSH", AVFMT_ALLOW_FLUSH);
+  SetContant(target, "AVFMT_TS_NONSTRICT", AVFMT_TS_NONSTRICT);
+  SetContant(target, "AVFMT_TS_NEGATIVE", AVFMT_TS_NEGATIVE);
+  SetContant(target, "AVFMT_SEEK_TO_PTS", AVFMT_SEEK_TO_PTS);
 
   // libavformat/avformat.h
-  target->Set(NanNew<String>("AVFMT_FLAG_GENPTS"),
-              NanNew<Number>(AVFMT_FLAG_GENPTS));
-  target->Set(NanNew<String>("AVFMT_FLAG_IGNIDX"),
-              NanNew<Number>(AVFMT_FLAG_IGNIDX));
-  target->Set(NanNew<String>("AVFMT_FLAG_NONBLOCK"),
-              NanNew<Number>(AVFMT_FLAG_NONBLOCK));
-  target->Set(NanNew<String>("AVFMT_FLAG_IGNDTS"),
-              NanNew<Number>(AVFMT_FLAG_IGNDTS));
-  target->Set(NanNew<String>("AVFMT_FLAG_NOFILLIN"),
-              NanNew<Number>(AVFMT_FLAG_NOFILLIN));
-  target->Set(NanNew<String>("AVFMT_FLAG_NOPARSE"),
-              NanNew<Number>(AVFMT_FLAG_NOPARSE));
-  target->Set(NanNew<String>("AVFMT_FLAG_NOBUFFER"),
-              NanNew<Number>(AVFMT_FLAG_NOBUFFER));
-  target->Set(NanNew<String>("AVFMT_FLAG_CUSTOM_IO"),
-              NanNew<Number>(AVFMT_FLAG_CUSTOM_IO));
-  target->Set(NanNew<String>("AVFMT_FLAG_DISCARD_CORRUPT"),
-              NanNew<Number>(AVFMT_FLAG_DISCARD_CORRUPT));
-  target->Set(NanNew<String>("AVFMT_FLAG_FLUSH_PACKETS"),
-              NanNew<Number>(AVFMT_FLAG_FLUSH_PACKETS));
-  target->Set(NanNew<String>("AVFMT_FLAG_MP4A_LATM"),
-              NanNew<Number>(AVFMT_FLAG_MP4A_LATM));
-  target->Set(NanNew<String>("AVFMT_FLAG_SORT_DTS"),
-              NanNew<Number>(AVFMT_FLAG_SORT_DTS));
-  target->Set(NanNew<String>("AVFMT_FLAG_PRIV_OPT"),
-              NanNew<Number>(AVFMT_FLAG_PRIV_OPT));
-  target->Set(NanNew<String>("AVFMT_FLAG_KEEP_SIDE_DATA"),
-              NanNew<Number>(AVFMT_FLAG_KEEP_SIDE_DATA));
+  SetContant(target, "AVFMT_FLAG_GENPTS", AVFMT_FLAG_GENPTS);
+  SetContant(target, "AVFMT_FLAG_IGNIDX", AVFMT_FLAG_IGNIDX);
+  SetContant(target, "AVFMT_FLAG_NONBLOCK", AVFMT_FLAG_NONBLOCK);
+  SetContant(target, "AVFMT_FLAG_IGNDTS", AVFMT_FLAG_IGNDTS);
+  SetContant(target, "AVFMT_FLAG_NOFILLIN", AVFMT_FLAG_NOFILLIN);
+  SetContant(target, "AVFMT_FLAG_NOPARSE", AVFMT_FLAG_NOPARSE);
+  SetContant(target, "AVFMT_FLAG_NOBUFFER", AVFMT_FLAG_NOBUFFER);
+  SetContant(target, "AVFMT_FLAG_CUSTOM_IO", AVFMT_FLAG_CUSTOM_IO);
+  SetContant(target, "AVFMT_FLAG_DISCARD_CORRUPT", AVFMT_FLAG_DISCARD_CORRUPT);
+  SetContant(target, "AVFMT_FLAG_FLUSH_PACKETS", AVFMT_FLAG_FLUSH_PACKETS);
+  SetContant(target, "AVFMT_FLAG_MP4A_LATM", AVFMT_FLAG_MP4A_LATM);
+  SetContant(target, "AVFMT_FLAG_SORT_DTS", AVFMT_FLAG_SORT_DTS);
+  SetContant(target, "AVFMT_FLAG_PRIV_OPT", AVFMT_FLAG_PRIV_OPT);
+  SetContant(target, "AVFMT_FLAG_KEEP_SIDE_DATA", AVFMT_FLAG_KEEP_SIDE_DATA);
 }
 
 
@@ -782,7 +756,7 @@ NAN_GETTER(FFmpeg::AVFormat::AVChapterWrapper::GetMetadata) {
 
 
 FFmpeg::AVFormat::AVReadFrameWorker::
-AVReadFrameWorker(std::list<NanAsyncWorker*> &q,
+AVReadFrameWorker(std::list<NanAsyncWorker*> *q,
                   ::AVFormatContext *ctx, ::AVPacket *pkt,
                   NanCallback *callback)
   : NanAsyncWorker(callback), queue(q), context(ctx), packet(pkt) {
@@ -798,9 +772,9 @@ void FFmpeg::AVFormat::AVReadFrameWorker::Execute() {
 void FFmpeg::AVFormat::AVReadFrameWorker::HandleOKCallback() {
   NanScope();
 
-  queue.pop_front();
-  if (queue.size() > 0)
-      NanAsyncQueueWorker(queue.front());
+  queue->pop_front();
+  if (queue->size() > 0)
+      NanAsyncQueueWorker(queue->front());
 
   Handle<Value> pkt = AVCodec::AVPacketWrapper::newInstance(packet);
 
@@ -1062,7 +1036,7 @@ NAN_METHOD(FFmpeg::AVFormat::AVFormatContextWrapper::ReadFrame) {
   if (args[1]->IsFunction()) {
     NanCallback *callback = new NanCallback(Local<Function>::Cast(args[1]));
     AVReadFrameWorker *worker =
-      new AVReadFrameWorker(obj->_async_queue, obj->_this, pkt, callback);
+      new AVReadFrameWorker(&obj->_async_queue, obj->_this, pkt, callback);
     obj->_async_queue.push_back(worker);
     if (obj->_async_queue.size() == 1)
       NanAsyncQueueWorker(obj->_async_queue.front());

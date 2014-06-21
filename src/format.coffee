@@ -77,7 +77,7 @@ class Format
 
     return setTimeout (=> @read callback), 30 unless packet?
 
-    donePacket = () => @putPacket packet
+    donePacket = => @putPacket packet
 
     @context.readFrame packet, (ret, packet) ->
       if ret >= 0 then callback donePacket, packet else donePacket()

@@ -89,7 +89,7 @@ class Subtitle
 
     return setTimeout (=> @decode donePacket, packet, callback), 30 unless subtt?
 
-    doneSubtitle = () => @putSubtitle subtt
+    doneSubtitle = => @putSubtitle subtt
 
     # @context.flushBuffers()
     @context.decodeSubtitle subtt, packet, (ret, got, subtt, packet) ->
