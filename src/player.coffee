@@ -47,6 +47,7 @@ class Player
           when @video.index then @video.decode done, packet, @video.render
           when @audio.index then @audio.decode done, packet, @audio.render
           when @subtt.index then @subtt.decode done, packet, @subtt.render
+    null
 
   toggle: ->
   stop: ->

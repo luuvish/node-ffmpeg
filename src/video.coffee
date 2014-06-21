@@ -82,7 +82,7 @@ class Video
 
     return setTimeout (=> @decode donePacket, packet, callback), 30 unless frame?
 
-    doneFrame = () => @putFrame frame
+    doneFrame = => @putFrame frame
 
     # @context.flushBuffers()
     @context.decodeVideo frame, packet, (ret, got, frame, packet) ->
