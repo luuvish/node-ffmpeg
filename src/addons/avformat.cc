@@ -401,7 +401,6 @@ void FFmpeg::AVFormat::AVStreamWrapper::Initialize(Handle<Object> target) {
   proto->SetAccessor(NanNew<String>("index"), GetIndex);
   proto->SetAccessor(NanNew<String>("id"), GetId);
   proto->SetAccessor(NanNew<String>("codec"), GetCodec);
-  proto->SetAccessor(NanNew<String>("pts"), GetPts);
   proto->SetAccessor(NanNew<String>("time_base"), GetTimeBase);
   proto->SetAccessor(NanNew<String>("start_time"), GetStartTime);
   proto->SetAccessor(NanNew<String>("duration"), GetDuration);
@@ -459,17 +458,6 @@ NAN_GETTER(FFmpeg::AVFormat::AVStreamWrapper::GetCodec) {
   AVStreamWrapper *obj = ObjectWrap::Unwrap<AVStreamWrapper>(args.This());
   Handle<Value> ret =
     AVCodec::AVCodecContextWrapper::newInstance(obj->_this->codec);
-  NanReturnValue(ret);
-}
-
-NAN_GETTER(FFmpeg::AVFormat::AVStreamWrapper::GetPts) {
-  NanScope();
-  AVStreamWrapper *obj = ObjectWrap::Unwrap<AVStreamWrapper>(args.This());
-  ::AVFrac pts = obj->_this->pts;
-  Handle<Object> ret = NanNew<Object>();
-  ret->Set(NanNew<String>("val"), NanNew<Number>(pts.val));
-  ret->Set(NanNew<String>("num"), NanNew<Number>(pts.num));
-  ret->Set(NanNew<String>("den"), NanNew<Number>(pts.den));
   NanReturnValue(ret);
 }
 

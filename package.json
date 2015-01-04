@@ -2,7 +2,7 @@
   "main": "./lib/ffmpeg.js",
   "name": "node-ffmpeg",
   "description": "FFmpeg c++ addon node module",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "license": [
     {
       "type": "MIT",
@@ -19,26 +19,28 @@
   "author": "luuvish <luuvish@gmail.com>",
   "homepage": "https://github.com/luuvish/node-ffmpeg",
   "keywords": [
-    "node.js", "ffmpeg"
+    "node.js",
+    "ffmpeg"
   ],
   "scripts": {
-    "prepublish": "grunt coffee",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepublish": "grunt coffee lint",
+    "test": "grunt test",
     "preinstall": "python ./script/bootstrap.py",
     "install": "node-gyp rebuild"
   },
   "devDependencies": {
-    "coffee-script": "^1.7.0",
+    "coffee-script": "^1.8.0",
     "grunt": "^0.4.5",
     "grunt-cli": "^0.1.13",
-    "grunt-coffeelint": "^0.0.10",
-    "grunt-contrib-coffee": "^0.10.1",
-    "grunt-shell": "^0.7.0",
-    "node-cpplint": "^0.2.0"
+    "grunt-coffeelint": "^0.0.13",
+    "grunt-contrib-coffee": "^0.12.0",
+    "grunt-shell": "^1.1.1",
+    "jasmine-tagged": "^1.1.2",
+    "node-cpplint": "^0.4.0"
   },
   "dependencies": {
-    "bindings": "^1.2.0",
-    "nan": "^1.2.0"
+    "bindings": "^1.2.1",
+    "nan": "^1.4.1"
   },
   "gypfile": true
 }

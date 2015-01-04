@@ -357,7 +357,6 @@ void FFmpeg::AVCodec::AVCodecContextWrapper::Initialize(Handle<Object> target) {
   proto->SetAccessor(NanNew<String>("is_open"), GetIsOpen);
   proto->SetAccessor(NanNew<String>("codec_type"), GetCodecType);
   proto->SetAccessor(NanNew<String>("codec"), GetCodec);
-  proto->SetAccessor(NanNew<String>("codec_name"), GetCodecName);
   proto->SetAccessor(NanNew<String>("codec_id"), GetCodecId);
   proto->SetAccessor(NanNew<String>("flags"), GetFlags, SetFlags);
   proto->SetAccessor(NanNew<String>("flags2"), GetFlags2, SetFlags2);
@@ -643,14 +642,6 @@ NAN_GETTER(FFmpeg::AVCodec::AVCodecContextWrapper::GetCodec) {
   Handle<Value> ret =
     AVCodecWrapper::newInstance(const_cast<::AVCodec *>(obj->_this->codec));
   NanReturnValue(ret);
-}
-
-NAN_GETTER(FFmpeg::AVCodec::AVCodecContextWrapper::GetCodecName) {
-  NanScope();
-  AVCodecContextWrapper *obj =
-    ObjectWrap::Unwrap<AVCodecContextWrapper>(args.This());
-  const char *codec_name = obj->_this->codec_name;
-  NanReturnValue(NanNew<String>(codec_name));
 }
 
 NAN_GETTER(FFmpeg::AVCodec::AVCodecContextWrapper::GetCodecId) {

@@ -1,5 +1,5 @@
-#ifndef SRC_FFMPEG_AVCODEC_H_
-#define SRC_FFMPEG_AVCODEC_H_
+#ifndef SRC_ADDONS_AVCODEC_H_
+#define SRC_ADDONS_AVCODEC_H_
 
 #include <node.h>
 #include <nan.h>
@@ -120,7 +120,6 @@ class AVCodecContextWrapper : public node::ObjectWrap {
   static NAN_GETTER(GetIsOpen);
   static NAN_GETTER(GetCodecType);
   static NAN_GETTER(GetCodec);
-  static NAN_GETTER(GetCodecName);
   static NAN_GETTER(GetCodecId);
   static NAN_GETTER(GetFlags);
   static NAN_GETTER(GetFlags2);
@@ -246,4 +245,4 @@ class AVSubtitleWrapper : public node::ObjectWrap {
 }  // namespace AVCodec
 }  // namespace FFmpeg
 
-#endif  // SRC_FFMPEG_AVCODEC_H_
+#endif  // SRC_ADDONS_AVCODEC_H_

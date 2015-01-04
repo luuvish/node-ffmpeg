@@ -111,7 +111,7 @@ NAN_METHOD(FFmpeg::AVUtil::GetSamplesBufferSize) {
     return NanThrowTypeError("linesize required");
   if (args[0]->IsArray()) {
     Local<Object> arg0 = args[0]->ToObject();
-    int length = arg0->Get(NanNew("length"))->ToObject()->Uint32Value();
+    int length = arg0->Get(NanNew<String>("length"))->ToObject()->Uint32Value();
     linesize = reinterpret_cast<int *>(av_mallocz(length * sizeof(int)));
     for (int i = 0; i < length; i++)
       linesize[i] = arg0->Get(i)->Int32Value();

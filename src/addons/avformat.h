@@ -1,5 +1,5 @@
-#ifndef SRC_FFMPEG_AVFORMAT_H_
-#define SRC_FFMPEG_AVFORMAT_H_
+#ifndef SRC_ADDONS_AVFORMAT_H_
+#define SRC_ADDONS_AVFORMAT_H_
 
 #include <node.h>
 #include <nan.h>
@@ -76,7 +76,6 @@ class AVStreamWrapper : public node::ObjectWrap {
   static NAN_GETTER(GetIndex);
   static NAN_GETTER(GetId);
   static NAN_GETTER(GetCodec);
-  static NAN_GETTER(GetPts);
   static NAN_GETTER(GetTimeBase);
   static NAN_GETTER(GetStartTime);
   static NAN_GETTER(GetDuration);
@@ -206,4 +205,4 @@ class AVFormatContextWrapper : public node::ObjectWrap {
 }  // namespace AVFormat
 }  // namespace FFmpeg
 
-#endif  // SRC_FFMPEG_AVFORMAT_H_
+#endif  // SRC_ADDONS_AVFORMAT_H_
