@@ -5,7 +5,7 @@ module.exports = (grunt) ->
     coffee:
       glob_to_multiple:
         expand: true
-        cwd: 'src'
+        cwd: 'src/coffee'
         src: ['**/*.coffee']
         dest: 'lib'
         ext: '.js'
@@ -16,25 +16,30 @@ module.exports = (grunt) ->
           level: 'error'
         max_line_length:
           level: 'ignore'
-        indentation:
-          level: 'ignore'
+        #indentation:
+        #  level: 'ignore'
 
-      src: ['src/**/*.coffee']
+      src: ['src/coffee/**/*.coffee']
       test: ['spec/**/*.coffee']
       gruntfile: ['Gruntfile.coffee']
 
     cpplint:
-      files: ['src/**/*.cc', 'src/**/*.h']
+      files: ['src/addons/**/*.cc', 'src/addons/**/*.h']
       reporter: 'spec'
       verbosity: 1
       filters:
         build:
           include: false
-          namespace: false
+          namespace: false ##
         legal:
           copyright: false
         readability:
           braces: false
+        runtime:
+          references: false
+          sizeof: false
+        whitespace:
+          line_length: false
 
     shell:
       rebuild:
@@ -45,14 +50,14 @@ module.exports = (grunt) ->
           failOnError: true
 
       clean:
-        command: 'rm -rf build lib'
+        command: 'rm -rf build tmp lib'
         options:
           stdout: true
           stderr: true
           failOnError: true
 
       test:
-        command: 'npm test'
+        command: 'node --harmony-collections node_modules/jasmine-tagged/bin/jasmine-tagged --captureExceptions --forceexit --coffee spec/'
         options:
           stdout: true
           stderr: true
@@ -65,5 +70,6 @@ module.exports = (grunt) ->
 
   grunt.registerTask 'default', ['coffee', 'lint', 'shell:rebuild']
   grunt.registerTask 'lint', ['coffeelint', 'cpplint']
-  grunt.registerTask 'test', ['coffee', 'lint', 'shell:test']
+  grunt.registerTask 'test', ['default', 'shell:test']
+  grunt.registerTask 'prepublish', ['clean', 'coffee', 'lint']
   grunt.registerTask 'clean', ['shell:clean']
