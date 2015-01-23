@@ -1,5 +1,5 @@
-#ifndef SRC_ADDONS_AVUTIL_H_
-#define SRC_ADDONS_AVUTIL_H_
+#ifndef SRC_ADDONS_AVUTIL_AVUTIL_H_
+#define SRC_ADDONS_AVUTIL_AVUTIL_H_
 
 #include <node.h>
 #include <nan.h>
@@ -74,4 +74,4 @@ class AVFrameWrapper : public node::ObjectWrap {
 }  // namespace AVUtil
 }  // namespace FFmpeg
 
-#endif  // SRC_ADDONS_AVUTIL_H_
+#endif  // SRC_ADDONS_AVUTIL_AVUTIL_H_

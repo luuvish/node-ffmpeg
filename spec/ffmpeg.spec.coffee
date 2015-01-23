@@ -1,5 +1,5 @@
 FFmpeg = require '../lib/ffmpeg'
-
+"""
 describe 'Test', ->
   it 'return true ..', ->
     expect(true).toBe true
@@ -17,3 +17,4 @@ describe 'Contants', ->
     expect(codec.id).toBe 28
     expect(codec.name).toBe FFmpeg.AVCodec.getName codec.id
     expect(codec.type).toBe FFmpeg.AVCodec.getType codec.id
+"""

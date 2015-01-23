@@ -10,14 +10,27 @@
     {
       'target_name': 'ffmpeg',
       'sources': [
-        'src/addons/main.cc',
-        'src/addons/avformat.cc',
-        'src/addons/avcodec.cc',
-        'src/addons/avutil.cc'
+        'src/addons/ffmpeg.cc',
+        #'src/addons/avformat/avformat.cc',
+        #'src/addons/avformat/avformatcontext.cc',
+        #'src/addons/avformat/avinputformat.cc',
+        #'src/addons/avformat/avoutputformat.cc',
+        #'src/addons/avformat/avprogram.cc',
+        #'src/addons/avformat/avstream.cc',
+        #'src/addons/avformat/avchapter.cc',
+        #'src/addons/avcodec/avcodec.cc',
+        #'src/addons/avcodec/avcodeccontext.cc',
+        #'src/addons/avcodec/avpacket.cc',
+        'src/addons/avcodec/avpicture.cc',
+        'src/addons/avcodec/avsubtitle.cc',
+        'src/addons/avcodec/avsubtitlerect.cc',
+        #'src/addons/avutil/avutil.cc',
+        'src/addons/avutil/pixfmt.cc'
       ],
       'include_dirs': [
         '<!(node -e \"require(\'nan\')\")',
-        'tmp/ffmpeg-lib/include'
+        'tmp/ffmpeg-lib/include',
+        'src/addons'
       ],
       'link_settings': {
         'libraries': [

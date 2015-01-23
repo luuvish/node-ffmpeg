@@ -1,6 +1,6 @@
 FFmpeg = require '../lib/ffmpeg'
 
-
+"""
 xdescribe 'AVCodec configs', ->
 
   it 'version', ->
@@ -135,3 +135,4 @@ xdescribe 'AVCodecContext', ->
   xit '', ->
     ctx.seek_preroll = 4
     expect(ctx.seek_preroll).toBe 4
+"""
