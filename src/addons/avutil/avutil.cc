@@ -1,4 +1,4 @@
-#include "avutil.h"
+#include "avutil/avutil.h"
 
 using namespace node;
 using namespace v8;
