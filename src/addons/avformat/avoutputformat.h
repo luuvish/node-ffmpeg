@@ -1,26 +1,26 @@
 #ifndef SRC_ADDONS_AVFORMAT_AVOUTPUTFORMAT_H_
 #define SRC_ADDONS_AVFORMAT_AVOUTPUTFORMAT_H_
 
-#include <node.h>
 #include <nan.h>
-#include <list>
 
 extern "C" {
 #include "libavformat/avformat.h"
 }
 
-namespace FFmpeg {
-namespace AVFormat {
+namespace ffmpeg {
+namespace avformat {
 
-class AVOutputFormatWrapper : public node::ObjectWrap {
+class AVOutputFormat : public node::ObjectWrap {
  public:
-  static void Initialize(v8::Handle<v8::Object> target);
-  static v8::Handle<v8::Value> newInstance(::AVOutputFormat *oformat = nullptr);
-  static bool HasInstance(v8::Handle<v8::Object> obj);
-  inline ::AVOutputFormat *This() { return _this; }
+  static void Init(v8::Handle<v8::Object> exports);
+  static v8::Local<v8::Value> NewInstance(v8::Local<v8::Value> arg);
+  static bool HasInstance(v8::Handle<v8::Value> value);
+  inline ::AVOutputFormat *This() { return this_; }
 
  private:
-  static v8::Persistent<v8::FunctionTemplate> constructor;
+  explicit AVOutputFormat(::AVOutputFormat *ref = nullptr);
+  virtual ~AVOutputFormat();
+
   static NAN_METHOD(New);
   static NAN_METHOD(GuessFormat);
   static NAN_METHOD(GuessCodec);
@@ -34,13 +34,13 @@ class AVOutputFormatWrapper : public node::ObjectWrap {
   static NAN_GETTER(GetSubtitleCodec);
   static NAN_GETTER(GetFlags);
   static NAN_SETTER(SetFlags);
-  explicit AVOutputFormatWrapper(::AVOutputFormat *oformat = nullptr);
-  virtual ~AVOutputFormatWrapper();
-  ::AVOutputFormat *_this;
-  bool _allocated;
+  static v8::Persistent<v8::FunctionTemplate> constructor;
+
+  ::AVOutputFormat *this_;
+  bool alloc_;
 };
 
-}  // namespace AVFormat
-}  // namespace FFmpeg
+}  // namespace avformat
+}  // namespace ffmpeg
 
 #endif  // SRC_ADDONS_AVFORMAT_AVOUTPUTFORMAT_H_

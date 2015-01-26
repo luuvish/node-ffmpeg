@@ -44,6 +44,23 @@ void AVSubtitleRect::Init(Handle<Object> exports) {
   exports->Set(NanNew("AVSubtitleRect"), tpl->GetFunction());
 }
 
+Local<Object> AVSubtitleRect::NewInstance(Local<Value> arg) {
+  NanEscapableScope();
+
+  const int argc = 1;
+  Local<Value> argv[argc] = { arg };
+  Local<Function> ctor = constructor->GetFunction();
+  Local<Object> instance = ctor->NewInstance(argc, argv);
+
+  return NanEscapeScope(instance);
+}
+
+bool AVSubtitleRect::HasInstance(Handle<Value> value) {
+  if (!value->IsObject()) return false;
+  Local<Object> obj = value->ToObject();
+  return NanHasInstance(constructor, obj);
+}
+
 NAN_METHOD(AVSubtitleRect::New) {
   NanScope();
 
@@ -60,23 +77,6 @@ NAN_METHOD(AVSubtitleRect::New) {
     Local<Function> ctor = constructor->GetFunction();
     NanReturnValue(ctor->NewInstance(argc, argv));
   }
-}
-
-Local<Object> AVSubtitleRect::NewInstance(Local<Value> arg) {
-  NanEscapableScope();
-
-  const int argc = 1;
-  Local<Value> argv[argc] = { arg };
-  Local<Function> ctor = constructor->GetFunction();
-  Local<Object> instance = ctor->NewInstance(argc, argv);
-
-  return NanEscapeScope(instance);
-}
-
-bool AVSubtitleRect::HasInstance(Handle<Value> value) {
-  if (!value->IsObject()) return false;
-  Local<Object> obj = value->ToObject();
-  return NanHasInstance(constructor, obj);
 }
 
 NAN_PROPERTY_GETTER(AVSubtitleRect::GetX) {

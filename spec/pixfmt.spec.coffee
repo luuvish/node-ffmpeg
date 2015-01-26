@@ -1,7 +1,7 @@
 ffmpeg = require '../lib/ffmpeg'
 
 describe 'AVPixelFormat constants', ->
-  AVPixelFormat = ffmpeg.AVPixelFormat
+  AVPixelFormat = ffmpeg.avutil.AVPixelFormat
 
   it 'YUV or RGB format', ->
     expect(AVPixelFormat.AV_PIX_FMT_NONE).toBe -1
@@ -23,7 +23,7 @@ describe 'AVPixelFormat constants', ->
     expect(AVPixelFormat.AV_PIX_FMT_BAYER_GRBG16BE).toBe 332
 
 describe 'AVColorPrimaries constants', ->
-  AVColorPrimaries = ffmpeg.AVColorPrimaries
+  AVColorPrimaries = ffmpeg.avutil.AVColorPrimaries
 
   it 'constants', ->
     expect(AVColorPrimaries.AVCOL_PRI_RESERVED0).toBe 0
@@ -38,7 +38,7 @@ describe 'AVColorPrimaries constants', ->
     expect(AVColorPrimaries.AVCOL_PRI_BT2020).toBe 9
 
 describe 'AVColorTransferCharacteristic constants', ->
-  AVColorTransferCharacteristic = ffmpeg.AVColorTransferCharacteristic
+  AVColorTransferCharacteristic = ffmpeg.avutil.AVColorTransferCharacteristic
 
   it 'constants', ->
     expect(AVColorTransferCharacteristic.AVCOL_TRC_RESERVED0).toBe 0
@@ -59,7 +59,7 @@ describe 'AVColorTransferCharacteristic constants', ->
     expect(AVColorTransferCharacteristic.AVCOL_TRC_BT2020_12).toBe 15
 
 describe 'AVColorSpace constants', ->
-  AVColorSpace = ffmpeg.AVColorSpace
+  AVColorSpace = ffmpeg.avutil.AVColorSpace
 
   it 'constants', ->
     expect(AVColorSpace.AVCOL_SPC_RGB).toBe 0
@@ -76,7 +76,7 @@ describe 'AVColorSpace constants', ->
     expect(AVColorSpace.AVCOL_SPC_BT2020_CL).toBe 10
 
 describe 'AVColorRange constants', ->
-  AVColorRange = ffmpeg.AVColorRange
+  AVColorRange = ffmpeg.avutil.AVColorRange
 
   it 'constants', ->
     expect(AVColorRange.AVCOL_RANGE_UNSPECIFIED).toBe 0
@@ -84,7 +84,7 @@ describe 'AVColorRange constants', ->
     expect(AVColorRange.AVCOL_RANGE_JPEG).toBe 2
 
 describe 'AVChromaLocation constants', ->
-  AVChromaLocation = ffmpeg.AVChromaLocation
+  AVChromaLocation = ffmpeg.avutil.AVChromaLocation
 
   it 'constants', ->
     expect(AVChromaLocation.AVCHROMA_LOC_UNSPECIFIED).toBe 0

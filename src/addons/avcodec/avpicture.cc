@@ -64,7 +64,7 @@ bool AVPicture::HasInstance(Handle<Value> value) {
 }
 
 NAN_METHOD(AVPicture::New) {
-  NanScope();
+  NanEscapableScope();
 
   if (args.IsConstructCall()) {
     ::AVPicture *ref = nullptr;
@@ -283,8 +283,8 @@ NAN_METHOD(AVPicture::Pad) {
   int padbottom = args[6]->Int32Value();
   int padleft = args[7]->Int32Value();
   int padright = args[8]->Int32Value();
-  int color[4];
-  Local<Array> arr = Local<Array>::Cast(args[9]);
+  int color[4] = {0, };
+  Local<Array> arr = args[9].As<Array>();
   for (uint32_t i = 0; i < 4 && i < arr->Length(); i++) {
     color[i] = arr->Get(i)->Uint32Value();
   }
