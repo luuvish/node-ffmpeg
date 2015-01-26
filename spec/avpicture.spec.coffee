@@ -2,7 +2,7 @@ ffmpeg = require '../lib/ffmpeg'
 
 describe 'AVPicture', ->
   AVPicture = ffmpeg.AVPicture
-  AVPixelFormat = ffmpeg.AVPixelFormat
+  AVPixelFormat = ffmpeg.avutil.AVPixelFormat
 
   it 'AVPicture.getSize() test', ->
     pix_fmt = AVPixelFormat.AV_PIX_FMT_YUV420P

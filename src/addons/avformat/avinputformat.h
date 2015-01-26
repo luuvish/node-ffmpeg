@@ -1,39 +1,42 @@
 #ifndef SRC_ADDONS_AVFORMAT_AVINPUTFORMAT_H_
 #define SRC_ADDONS_AVFORMAT_AVINPUTFORMAT_H_
 
-#include <node.h>
 #include <nan.h>
-#include <list>
 
 extern "C" {
 #include "libavformat/avformat.h"
 }
 
-namespace FFmpeg {
-namespace AVFormat {
+namespace ffmpeg {
+namespace avformat {
 
-class AVInputFormatWrapper : public node::ObjectWrap {
+class AVInputFormat : public node::ObjectWrap {
  public:
-  static void Initialize(v8::Handle<v8::Object> target);
-  static v8::Handle<v8::Value> newInstance(::AVInputFormat *iformat = nullptr);
-  static bool HasInstance(v8::Handle<v8::Object> obj);
-  inline ::AVInputFormat *This() { return _this; }
+  static void Init(v8::Handle<v8::Object> exports);
+  static v8::Local<v8::Value> NewInstance(v8::Local<v8::Value> arg);
+  static bool HasInstance(v8::Handle<v8::Value> value);
+  inline ::AVInputFormat *This() { return this_; }
 
  private:
-  static v8::Persistent<v8::FunctionTemplate> constructor;
+  explicit AVInputFormat(::AVInputFormat *ref = nullptr);
+  virtual ~AVInputFormat();
+
   static NAN_METHOD(New);
   static NAN_METHOD(FindInputFormat);
   static NAN_GETTER(GetName);
   static NAN_GETTER(GetLongName);
   static NAN_GETTER(GetFlags);
   static NAN_SETTER(SetFlags);
-  explicit AVInputFormatWrapper(::AVInputFormat *iformat = nullptr);
-  virtual ~AVInputFormatWrapper();
-  ::AVInputFormat *_this;
-  bool _allocated;
+  static NAN_GETTER(GetExtensions);
+  static NAN_GETTER(GetMimeType);
+  static NAN_GETTER(GetRawCodecId);
+  static v8::Persistent<v8::FunctionTemplate> constructor;
+
+  ::AVInputFormat *this_;
+  bool alloc_;
 };
 
-}  // namespace AVFormat
-}  // namespace FFmpeg
+}  // namespace avformat
+}  // namespace ffmpeg
 
 #endif  // SRC_ADDONS_AVFORMAT_AVINPUTFORMAT_H_

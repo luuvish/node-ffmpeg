@@ -1,20 +1,26 @@
 #ifndef SRC_ADDONS_AVFORMAT_AVFORMAT_H_
 #define SRC_ADDONS_AVFORMAT_AVFORMAT_H_
 
-#include <node.h>
 #include <nan.h>
-#include <list>
 
 extern "C" {
 #include "libavformat/avformat.h"
 }
 
-namespace FFmpeg {
-namespace AVFormat {
+namespace ffmpeg {
+namespace avformat {
 
-void Initialize(v8::Handle<v8::Object> target);
+class AVFormat {
+ public:
+  static void Init(v8::Handle<v8::Object> exports);
 
-}  // namespace AVFormat
-}  // namespace FFmpeg
+ private:
+  static NAN_METHOD(Version);
+  static NAN_METHOD(Configuration);
+  static NAN_METHOD(License);
+};
+
+}  // namespace avformat
+}  // namespace ffmpeg
 
 #endif  // SRC_ADDONS_AVFORMAT_AVFORMAT_H_
