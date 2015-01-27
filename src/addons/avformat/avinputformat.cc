@@ -41,7 +41,7 @@ void AVInputFormat::Init(Handle<Object> exports) {
   exports->Set(NanNew("AVInputFormat"), tpl->GetFunction());
 }
 
-Local<Value> AVInputFormat::NewInstance(Local<Value> arg) {
+Local<Object> AVInputFormat::NewInstance(Local<Value> arg) {
   NanEscapableScope();
 
   const int argc = 1;

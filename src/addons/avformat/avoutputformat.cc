@@ -47,7 +47,7 @@ void AVOutputFormat::Init(Handle<Object> exports) {
   exports->Set(NanNew("AVOutputFormat"), tpl->GetFunction());
 }
 
-Local<Value> AVOutputFormat::NewInstance(Local<Value> arg) {
+Local<Object> AVOutputFormat::NewInstance(Local<Value> arg) {
   NanEscapableScope();
 
   const int argc = 1;

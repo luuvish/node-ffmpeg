@@ -8,9 +8,7 @@ namespace avcodec {
 
 Persistent<FunctionTemplate> AVPacket::constructor;
 
-void read_pointer_cb(char *data, void *hint) {
-  ;
-}
+void read_pointer_cb(char *data, void *hint) {}
 
 AVPacket::AVPacket(::AVPacket *ref) : this_(ref), alloc_(false) {
   if (this_ == nullptr) {

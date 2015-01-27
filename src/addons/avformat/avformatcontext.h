@@ -30,7 +30,7 @@ class AVReadFrameWorker : public NanAsyncWorker {
 class AVFormatContext : public node::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> exports);
-  static v8::Local<v8::Value> NewInstance(v8::Local<v8::Value> arg);
+  static v8::Local<v8::Object> NewInstance(v8::Local<v8::Value> arg);
   static bool HasInstance(v8::Handle<v8::Value> value);
   inline ::AVFormatContext *This() { return this_; }
 

@@ -171,7 +171,7 @@ void AVFormatContext::Init(Handle<Object> exports) {
   exports->Set(NanNew("AVFormatContext"), tpl->GetFunction());
 }
 
-Local<Value> AVFormatContext::NewInstance(Local<Value> arg) {
+Local<Object> AVFormatContext::NewInstance(Local<Value> arg) {
   NanEscapableScope();
 
   const int argc = 1;

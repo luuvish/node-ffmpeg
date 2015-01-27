@@ -13,7 +13,7 @@ namespace avformat {
 class AVOutputFormat : public node::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> exports);
-  static v8::Local<v8::Value> NewInstance(v8::Local<v8::Value> arg);
+  static v8::Local<v8::Object> NewInstance(v8::Local<v8::Value> arg);
   static bool HasInstance(v8::Handle<v8::Value> value);
   inline ::AVOutputFormat *This() { return this_; }
 
