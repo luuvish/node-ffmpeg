@@ -1,39 +1,39 @@
 #ifndef SRC_ADDONS_AVFORMAT_AVCHAPTER_H_
 #define SRC_ADDONS_AVFORMAT_AVCHAPTER_H_
 
-#include <node.h>
 #include <nan.h>
-#include <list>
 
 extern "C" {
 #include "libavformat/avformat.h"
 }
 
-namespace FFmpeg {
-namespace AVFormat {
+namespace ffmpeg {
+namespace avformat {
 
-class AVChapterWrapper : public node::ObjectWrap {
+class AVChapter : public node::ObjectWrap {
  public:
-  static void Initialize(v8::Handle<v8::Object> target);
-  static v8::Handle<v8::Value> newInstance(::AVChapter *chapter = nullptr);
-  static bool HasInstance(v8::Handle<v8::Object> obj);
-  inline ::AVChapter *This() { return _this; }
+  static void Init(v8::Handle<v8::Object> exports);
+  static v8::Local<v8::Object> NewInstance(v8::Local<v8::Value> arg);
+  static bool HasInstance(v8::Handle<v8::Value> value);
+  inline ::AVChapter *This() { return this_; }
 
  private:
-  static v8::Persistent<v8::FunctionTemplate> constructor;
+  explicit AVChapter(::AVChapter *ref = nullptr);
+  virtual ~AVChapter();
+
   static NAN_METHOD(New);
   static NAN_GETTER(GetId);
   static NAN_GETTER(GetTimeBase);
   static NAN_GETTER(GetStart);
   static NAN_GETTER(GetEnd);
   static NAN_GETTER(GetMetadata);
-  explicit AVChapterWrapper(::AVChapter *chapter = nullptr);
-  virtual ~AVChapterWrapper();
-  ::AVChapter *_this;
-  bool _allocated;
+  static v8::Persistent<v8::FunctionTemplate> constructor;
+
+  ::AVChapter *this_;
+  bool alloc_;
 };
 
-}  // namespace AVFormat
-}  // namespace FFmpeg
+}  // namespace avformat
+}  // namespace ffmpeg
 
 #endif  // SRC_ADDONS_AVFORMAT_AVCHAPTER_H_

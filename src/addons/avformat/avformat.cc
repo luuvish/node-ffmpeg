@@ -1,6 +1,8 @@
 #include "avformat/avformat.h"
 #include "avformat/avinputformat.h"
 #include "avformat/avoutputformat.h"
+#include "avformat/avprogram.h"
+#include "avformat/avchapter.h"
 #include "avformat/avformatcontext.h"
 
 using namespace v8;
@@ -89,9 +91,10 @@ void AVFormat::Init(Handle<Object> exports) {
 
 /*
   AVStream::Init(obj);
+*/
   AVProgram::Init(obj);
   AVChapter::Init(obj);
-*/
+
   AVFormatContext::Init(obj);
 
   NODE_DEFINE_CONSTANT(obj, AVSEEK_FLAG_BACKWARD);

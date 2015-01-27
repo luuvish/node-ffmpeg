@@ -1,132 +1,252 @@
 #include "avformat/avprogram.h"
-#include "avcodec/avcodec.h"
-#include "avcodec/avcodeccontext.h"
-#include "avcodec/avpacket.h"
 #include "avutil/avutil.h"
 
-using namespace node;
 using namespace v8;
 
+namespace ffmpeg {
+namespace avformat {
 
-inline void
-SetContant(Handle<Object> const &target, const char *symbol, int value) {
-  target->Set(NanNew<String>(symbol), NanNew<Number>(value));
-}
+Persistent<FunctionTemplate> AVProgram::constructor;
 
-
-Persistent<FunctionTemplate> FFmpeg::AVFormat::AVProgramWrapper::constructor;
-
-FFmpeg::AVFormat::AVProgramWrapper::AVProgramWrapper(::AVProgram *program)
-  : _this(program), _allocated(false) {
-  if (!_this) {
-    _this = (::AVProgram *)av_mallocz(sizeof(::AVProgram));
-    _allocated = true;
+AVProgram::AVProgram(::AVProgram *ref) : this_(ref), alloc_(false) {
+  if (this_ == nullptr) {
+    this_ = (::AVProgram *)av_mallocz(sizeof(::AVProgram));
+    alloc_ = true;
   }
 }
 
-FFmpeg::AVFormat::AVProgramWrapper::~AVProgramWrapper() {
-  if (_this && _allocated)
-    av_freep(&_this);
+AVProgram::~AVProgram() {
+  if (this_ != nullptr && alloc_ == true)
+    av_freep(&this_);
 }
 
-void FFmpeg::AVFormat::AVProgramWrapper::Initialize(Handle<Object> target) {
+void AVProgram::Init(Handle<Object> exports) {
   NanScope();
 
-  Local<FunctionTemplate> ctor = NanNew<FunctionTemplate>(New);
-  NanAssignPersistent(constructor, ctor);
-  ctor->InstanceTemplate()->SetInternalFieldCount(1);
-  ctor->SetClassName(NanNew<String>("AVProgram"));
+  Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(New);
+  tpl->SetClassName(NanNew("AVProgram"));
+  tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-  Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
-  proto->SetAccessor(NanNew<String>("id"), GetId);
-  proto->SetAccessor(NanNew<String>("discard"), GetDiscard);
-  proto->SetAccessor(NanNew<String>("stream_indexes"), GetStreamIndexes);
-  proto->SetAccessor(NanNew<String>("metadata"), GetMetadata);
-  proto->SetAccessor(NanNew<String>("program_num"), GetProgramNum);
-  proto->SetAccessor(NanNew<String>("start_time"), GetStartTime);
-  proto->SetAccessor(NanNew<String>("end_time"), GetEndTime);
+  tpl->InstanceTemplate()->SetAccessor(NanNew("id"), GetId);
+  tpl->InstanceTemplate()->SetAccessor(NanNew("flags"), GetFlags, SetFlags);
+  tpl->InstanceTemplate()->SetAccessor(NanNew("discard"),
+                                       GetDiscard, SetDiscard);
+  tpl->InstanceTemplate()->SetAccessor(NanNew("stream_indexes"),
+                                       GetStreamIndexes);
+  tpl->InstanceTemplate()->SetAccessor(NanNew("metadata"), GetMetadata);
+  tpl->InstanceTemplate()->SetAccessor(NanNew("program_num"),
+                                       GetProgramNum, SetProgramNum);
+  tpl->InstanceTemplate()->SetAccessor(NanNew("pmt_pid"), GetPmtPid, SetPmtPid);
+  tpl->InstanceTemplate()->SetAccessor(NanNew("pcr_pid"), GetPcrPid, SetPcrPid);
+  tpl->InstanceTemplate()->SetAccessor(NanNew("start_time"), GetStartTime);
+  tpl->InstanceTemplate()->SetAccessor(NanNew("end_time"), GetEndTime);
+  tpl->InstanceTemplate()->SetAccessor(NanNew("pts_wrap_reference"),
+                                       GetPtsWrapReference);
+  tpl->InstanceTemplate()->SetAccessor(NanNew("pts_wrap_behavior"),
+                                       GetPtsWrapBehavior);
 
-  Local<Function> creator = ctor->GetFunction();
-  target->Set(NanNew<String>("AVProgram"), creator);
+  NanAssignPersistent(constructor, tpl);
+  exports->Set(NanNew("AVProgram"), tpl->GetFunction());
 }
 
-Handle<Value>
-FFmpeg::AVFormat::AVProgramWrapper::newInstance(::AVProgram *program) {
-  NanScope();
+Local<Object> AVProgram::NewInstance(Local<Value> arg) {
+  NanEscapableScope();
+
   const int argc = 1;
-  Handle<Value> argv[argc] = { NanNew<External>(program) };
-  NanReturnValue(constructor->GetFunction()->NewInstance(argc, argv));
+  Local<Value> argv[argc] = { arg };
+  Local<Function> ctor = constructor->GetFunction();
+  Local<Object> instance = ctor->NewInstance(argc, argv);
+
+  return NanEscapeScope(instance);
 }
 
-bool FFmpeg::AVFormat::AVProgramWrapper::HasInstance(Handle<Object> obj) {
+bool AVProgram::HasInstance(Handle<Value> value) {
+  if (!value->IsObject()) return false;
+  Local<Object> obj = value->ToObject();
   return NanHasInstance(constructor, obj);
 }
 
-NAN_METHOD(FFmpeg::AVFormat::AVProgramWrapper::New) {
+NAN_METHOD(AVProgram::New) {
+  NanEscapableScope();
+
   if (args.IsConstructCall()) {
-    NanScope();
-    ::AVProgram *program = nullptr;
+    ::AVProgram *ref = nullptr;
     if (args[0]->IsExternal())
-      program = static_cast<::AVProgram *>(External::Unwrap(args[0]));
-    AVProgramWrapper *obj = new AVProgramWrapper(program);
+      ref = static_cast<::AVProgram *>(External::Unwrap(args[0]));
+    AVProgram *obj = new AVProgram(ref);
     obj->Wrap(args.This());
     NanReturnValue(args.This());
+  } else {
+    const int argc = 1;
+    Local<Value> argv[argc] = { args[0] };
+    Local<Function> ctor = constructor->GetFunction();
+    NanReturnValue(ctor->NewInstance(argc, argv));
   }
-  NanScope();
-  NanReturnValue(constructor->GetFunction()->NewInstance());
 }
 
-NAN_GETTER(FFmpeg::AVFormat::AVProgramWrapper::GetId) {
-  NanScope();
-  AVProgramWrapper *obj = ObjectWrap::Unwrap<AVProgramWrapper>(args.This());
-  int id = obj->_this->id;
-  NanReturnValue(NanNew<Number>(id));
+NAN_GETTER(AVProgram::GetId) {
+  NanEscapableScope();
+
+  ::AVProgram *ref = Unwrap<AVProgram>(args.This())->This();
+  int id = ref->id;
+
+  NanReturnValue(NanNew<Integer>(id));
 }
 
-NAN_GETTER(FFmpeg::AVFormat::AVProgramWrapper::GetDiscard) {
-  NanScope();
-  AVProgramWrapper *obj = ObjectWrap::Unwrap<AVProgramWrapper>(args.This());
-  enum ::AVDiscard discard = obj->_this->discard;
-  NanReturnValue(NanNew<Number>(discard));
+NAN_GETTER(AVProgram::GetFlags) {
+  NanEscapableScope();
+
+  ::AVProgram *ref = Unwrap<AVProgram>(args.This())->This();
+  int flags = ref->flags;
+
+  NanReturnValue(NanNew<Integer>(flags));
 }
 
-NAN_GETTER(FFmpeg::AVFormat::AVProgramWrapper::GetStreamIndexes) {
+NAN_SETTER(AVProgram::SetFlags) {
   NanScope();
-  AVProgramWrapper *obj = ObjectWrap::Unwrap<AVProgramWrapper>(args.This());
-  Handle<Array> stream_indexes = NanNew<Array>(obj->_this->nb_stream_indexes);
-  for (unsigned int i = 0; i < obj->_this->nb_stream_indexes; i++)
-    stream_indexes->Set(i, NanNew<Number>(obj->_this->stream_index[i]));
-  NanReturnValue(stream_indexes);
+
+  if (!value->IsNumber())
+    NanThrowTypeError("flags: integer required");
+
+  ::AVProgram *ref = Unwrap<AVProgram>(args.This())->This();
+  ref->flags = value->Int32Value();
 }
 
-NAN_GETTER(FFmpeg::AVFormat::AVProgramWrapper::GetMetadata) {
+NAN_GETTER(AVProgram::GetDiscard) {
+  NanEscapableScope();
+
+  ::AVProgram *ref = Unwrap<AVProgram>(args.This())->This();
+  enum ::AVDiscard discard = ref->discard;
+
+  NanReturnValue(NanNew<Integer>(discard));
+}
+
+NAN_SETTER(AVProgram::SetDiscard) {
   NanScope();
-  AVProgramWrapper *obj = ObjectWrap::Unwrap<AVProgramWrapper>(args.This());
-  Handle<Object> ret = NanNew<Object>();
-  AVDictionary *metadata = obj->_this->metadata;
-  AVDictionaryEntry *t = nullptr;
-  while ((t = av_dict_get(metadata, "", t, AV_DICT_IGNORE_SUFFIX)))
-    ret->Set(NanNew<String>(t->key), NanNew<String>(t->value));
+
+  if (!value->IsNumber())
+    NanThrowTypeError("discard: enum required");
+
+  ::AVProgram *ref = Unwrap<AVProgram>(args.This())->This();
+  ref->discard = static_cast<enum ::AVDiscard>(value->Uint32Value());
+}
+
+NAN_GETTER(AVProgram::GetStreamIndexes) {
+  NanEscapableScope();
+
+  ::AVProgram *ref = Unwrap<AVProgram>(args.This())->This();
+  Local<Array> ret = NanNew<Array>(ref->nb_stream_indexes);
+  for (uint32_t i = 0; i < ref->nb_stream_indexes; i++)
+    ret->Set(i, NanNew<Integer>(ref->stream_index[i]));
+
   NanReturnValue(ret);
 }
 
-NAN_GETTER(FFmpeg::AVFormat::AVProgramWrapper::GetProgramNum) {
-  NanScope();
-  AVProgramWrapper *obj = ObjectWrap::Unwrap<AVProgramWrapper>(args.This());
-  int program_num = obj->_this->program_num;
-  NanReturnValue(NanNew<Number>(program_num));
+NAN_GETTER(AVProgram::GetMetadata) {
+  NanEscapableScope();
+
+  ::AVProgram *ref = Unwrap<AVProgram>(args.This())->This();
+  Local<Object> ret = NanNew<Object>();
+  AVDictionary *metadata = ref->metadata;
+  AVDictionaryEntry *t = nullptr;
+  while ((t = av_dict_get(metadata, "", t, AV_DICT_IGNORE_SUFFIX)))
+    ret->Set(NanNew<String>(t->key), NanNew<String>(t->value));
+
+  NanReturnValue(ret);
 }
 
-NAN_GETTER(FFmpeg::AVFormat::AVProgramWrapper::GetStartTime) {
+NAN_GETTER(AVProgram::GetProgramNum) {
+  NanEscapableScope();
+
+  ::AVProgram *ref = Unwrap<AVProgram>(args.This())->This();
+  int program_num = ref->program_num;
+
+  NanReturnValue(NanNew<Integer>(program_num));
+}
+
+NAN_SETTER(AVProgram::SetProgramNum) {
   NanScope();
-  AVProgramWrapper *obj = ObjectWrap::Unwrap<AVProgramWrapper>(args.This());
-  int64_t start_time = obj->_this->start_time;
+
+  if (!value->IsNumber())
+    NanThrowTypeError("program_num: integer required");
+
+  ::AVProgram *ref = Unwrap<AVProgram>(args.This())->This();
+  ref->program_num = value->Int32Value();
+}
+
+NAN_GETTER(AVProgram::GetPmtPid) {
+  NanEscapableScope();
+
+  ::AVProgram *ref = Unwrap<AVProgram>(args.This())->This();
+  int pmt_pid = ref->pmt_pid;
+
+  NanReturnValue(NanNew<Integer>(pmt_pid));
+}
+
+NAN_SETTER(AVProgram::SetPmtPid) {
+  NanScope();
+
+  if (!value->IsNumber())
+    NanThrowTypeError("pmt_pid: integer required");
+
+  ::AVProgram *ref = Unwrap<AVProgram>(args.This())->This();
+  ref->pmt_pid = value->Int32Value();
+}
+
+NAN_GETTER(AVProgram::GetPcrPid) {
+  NanEscapableScope();
+
+  ::AVProgram *ref = Unwrap<AVProgram>(args.This())->This();
+  int pcr_pid = ref->pcr_pid;
+
+  NanReturnValue(NanNew<Integer>(pcr_pid));
+}
+
+NAN_SETTER(AVProgram::SetPcrPid) {
+  NanScope();
+
+  if (!value->IsNumber())
+    NanThrowTypeError("pcr_pid: integer required");
+
+  ::AVProgram *ref = Unwrap<AVProgram>(args.This())->This();
+  ref->pcr_pid = value->Int32Value();
+}
+
+NAN_GETTER(AVProgram::GetStartTime) {
+  NanEscapableScope();
+
+  ::AVProgram *ref = Unwrap<AVProgram>(args.This())->This();
+  int64_t start_time = ref->start_time;
+
   NanReturnValue(NanNew<Number>(start_time));
 }
 
-NAN_GETTER(FFmpeg::AVFormat::AVProgramWrapper::GetEndTime) {
-  NanScope();
-  AVProgramWrapper *obj = ObjectWrap::Unwrap<AVProgramWrapper>(args.This());
-  int64_t end_time = obj->_this->end_time;
+NAN_GETTER(AVProgram::GetEndTime) {
+  NanEscapableScope();
+
+  ::AVProgram *ref = Unwrap<AVProgram>(args.This())->This();
+  int64_t end_time = ref->end_time;
+
   NanReturnValue(NanNew<Number>(end_time));
 }
+
+NAN_GETTER(AVProgram::GetPtsWrapReference) {
+  NanEscapableScope();
+
+  ::AVProgram *ref = Unwrap<AVProgram>(args.This())->This();
+  int64_t pts_wrap_reference = ref->pts_wrap_reference;
+
+  NanReturnValue(NanNew<Number>(pts_wrap_reference));
+}
+
+NAN_GETTER(AVProgram::GetPtsWrapBehavior) {
+  NanEscapableScope();
+
+  ::AVProgram *ref = Unwrap<AVProgram>(args.This())->This();
+  int pts_wrap_behavior = ref->pts_wrap_behavior;
+
+  NanReturnValue(NanNew<Integer>(pts_wrap_behavior));
+}
+
+}  // namespace avformat
+}  // namespace ffmpeg
