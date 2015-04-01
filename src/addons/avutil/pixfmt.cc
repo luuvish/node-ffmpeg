@@ -1,3 +1,7 @@
+extern "C" {
+#include "libavutil/frame.h"
+}
+
 #include "avutil/pixfmt.h"
 
 using namespace v8;
@@ -148,6 +152,12 @@ void AVPixelFormat::Init(Handle<Object> exports) {
   NODE_DEFINE_CONSTANT(obj, AV_PIX_FMT_YA16BE);
   NODE_DEFINE_CONSTANT(obj, AV_PIX_FMT_YA16LE);
 
+  NODE_DEFINE_CONSTANT(obj, AV_PIX_FMT_GBRAP_LIBAV);
+  NODE_DEFINE_CONSTANT(obj, AV_PIX_FMT_GBRAP16BE_LIBAV);
+  NODE_DEFINE_CONSTANT(obj, AV_PIX_FMT_GBRAP16LE_LIBAV);
+
+  NODE_DEFINE_CONSTANT(obj, AV_PIX_FMT_QSV);
+
   NODE_DEFINE_CONSTANT(obj, AV_PIX_FMT_0RGB);
   NODE_DEFINE_CONSTANT(obj, AV_PIX_FMT_RGB0);
   NODE_DEFINE_CONSTANT(obj, AV_PIX_FMT_0BGR);
@@ -254,7 +264,24 @@ void AVColorSpace::Init(Handle<Object> exports) {
   NODE_DEFINE_CONSTANT(obj, AVCOL_SPC_BT2020_NCL);
   NODE_DEFINE_CONSTANT(obj, AVCOL_SPC_BT2020_CL);
 
+  NODE_SET_METHOD(obj, "getColorspaceName", GetColorspaceName);
+
   exports->Set(NanNew("AVColorSpace"), obj);
+}
+
+NAN_METHOD(AVColorSpace::GetColorspaceName) {
+  NanScope();
+
+  if (!args[0]->IsNumber())
+    return NanThrowTypeError("getColorspaceName: AVColorSpace enum required");
+
+  enum ::AVColorSpace val =
+    static_cast<enum ::AVColorSpace>(args[0]->Uint32Value());
+  const char* name = av_get_colorspace_name(val);
+  if (name)
+    NanReturnValue(NanNew<String>(name));
+  else
+    NanReturnEmptyString();
 }
 
 void AVColorRange::Init(Handle<Object> exports) {

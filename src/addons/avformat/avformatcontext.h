@@ -10,6 +10,7 @@ extern "C" {
 
 namespace ffmpeg {
 namespace avformat {
+
 /*
 class AVReadFrameWorker : public NanAsyncWorker {
  public:
@@ -27,57 +28,66 @@ class AVReadFrameWorker : public NanAsyncWorker {
   int result;
 };
 */
+
 class AVFormatContext : public node::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> exports);
-  static v8::Local<v8::Object> NewInstance(v8::Local<v8::Value> arg);
+  static v8::Local<v8::Object> NewInstance(::AVFormatContext* wrap);
   static bool HasInstance(v8::Handle<v8::Value> value);
-  inline ::AVFormatContext *This() { return this_; }
+  ::AVFormatContext* This(::AVFormatContext* wrap = nullptr);
 
  private:
-  explicit AVFormatContext(::AVFormatContext *ref = nullptr);
-  virtual ~AVFormatContext();
+  explicit AVFormatContext();
+  ~AVFormatContext();
+  ::AVFormatContext* this_;
 
+  static v8::Persistent<v8::FunctionTemplate> constructor;
   static NAN_METHOD(New);
+  static NAN_METHOD(NewStream);
+  static NAN_METHOD(NewProgram);
+  static NAN_METHOD(OpenOutput);
   static NAN_METHOD(OpenInput);
-  static NAN_METHOD(CloseInput);
-  //static NAN_METHOD(FindStreamInfo);
-  //static NAN_METHOD(FindProgramFromStream);
-  //static NAN_METHOD(FindBestStream);
+  static NAN_METHOD(FindStreamInfo);
+  static NAN_METHOD(FindProgramFromStream);
+  static NAN_METHOD(FindBestStream);
   static NAN_METHOD(ReadFrame);
   static NAN_METHOD(SeekFrame);
   static NAN_METHOD(SeekFile);
+  static NAN_METHOD(Flush);
   static NAN_METHOD(ReadPlay);
   static NAN_METHOD(ReadPause);
-  //static NAN_METHOD(WriteHeader);
+  static NAN_METHOD(CloseOutput);
+  static NAN_METHOD(CloseInput);
+  static NAN_METHOD(WriteHeader);
   static NAN_METHOD(WriteFrame);
   static NAN_METHOD(WriteInterleavedFrame);
-  //static NAN_METHOD(WriteUncodedFrame);
-  //static NAN_METHOD(WriteUncodedInterleavedFrame);
-  //static NAN_METHOD(WriteUncodedFrameQuery);
+  static NAN_METHOD(WriteUncodedFrame);
+  static NAN_METHOD(WriteInterleavedUncodedFrame);
+  static NAN_METHOD(WriteUncodedFrameQuery);
   static NAN_METHOD(WriteTrailer);
-  //static NAN_METHOD(GetOutputTimestamp);
+  static NAN_METHOD(GetOutputTimestamp);
+  static NAN_METHOD(FindDefaultStreamIndex);
   static NAN_METHOD(DumpFormat);
-  //static NAN_METHOD(GuessSampleAspectRatio);
-  //static NAN_METHOD(GuessFrameRate);
-  //static NAN_METHOD(MatchStreamSpecifier);
-  //static NAN_METHOD(QueueAttachedPictures);
-  //static NAN_GETTER(GetIFormat);
-  //static NAN_GETTER(GetOFormat);
+  static NAN_METHOD(GuessSampleAspectRatio);
+  static NAN_METHOD(GuessFrameRate);
+  static NAN_METHOD(MatchStreamSpecifier);
+  static NAN_METHOD(QueueAttachedPictures);
+  static NAN_METHOD(InjectGlobalSideData);
+  static NAN_GETTER(GetIFormat);
+  static NAN_GETTER(GetOFormat);
+  static NAN_SETTER(SetOFormat);
   static NAN_GETTER(GetCtxFlags);
-  //static NAN_GETTER(GetStreams);
+  static NAN_GETTER(GetStreams);
   static NAN_GETTER(GetFilename);
   static NAN_SETTER(SetFilename);
   static NAN_GETTER(GetStartTime);
-  static NAN_SETTER(SetStartTime);
   static NAN_GETTER(GetDuration);
-  static NAN_SETTER(SetDuration);
   static NAN_GETTER(GetBitRate);
   static NAN_GETTER(GetPacketSize);
   static NAN_GETTER(GetMaxDelay);
   static NAN_GETTER(GetFlags);
   static NAN_SETTER(SetFlags);
-  //static NAN_GETTER(GetPrograms);
+  static NAN_GETTER(GetPrograms);
   static NAN_GETTER(GetVideoCodecId);
   static NAN_SETTER(SetVideoCodecId);
   static NAN_GETTER(GetAudioCodecId);
@@ -87,7 +97,7 @@ class AVFormatContext : public node::ObjectWrap {
   static NAN_GETTER(GetMaxIndexSize);
   static NAN_SETTER(SetMaxIndexSize);
   static NAN_GETTER(GetMaxPictureBuffer);
-  //static NAN_GETTER(GetChapters);
+  static NAN_GETTER(GetChapters);
   static NAN_GETTER(GetMetadata);
   static NAN_GETTER(GetStartTimeRealtime);
   static NAN_SETTER(SetStartTimeRealtime);
@@ -119,26 +129,22 @@ class AVFormatContext : public node::ObjectWrap {
   static NAN_GETTER(GetFormatProbesize);
   static NAN_GETTER(GetCodecWhitelist);
   static NAN_GETTER(GetFormatWhitelist);
-  static NAN_GETTER(GetDataOffset);
-  static NAN_GETTER(GetRawPacketBufferRemainingSize);
-  static NAN_GETTER(GetOffset);
-  static NAN_GETTER(GetOffsetTimebase);
   static NAN_GETTER(GetIoRepositioned);
-  //static NAN_GETTER(GetVideoCodec);
-  //static NAN_SETTER(SetVideoCodec);
-  //static NAN_GETTER(GetAudioCodec);
-  //static NAN_SETTER(SetAudioCodec);
-  //static NAN_GETTER(GetSubtitleCodec);
-  //static NAN_SETTER(SetSubtitleCodec);
+  static NAN_GETTER(GetVideoCodec);
+  static NAN_SETTER(SetVideoCodec);
+  static NAN_GETTER(GetAudioCodec);
+  static NAN_SETTER(SetAudioCodec);
+  static NAN_GETTER(GetSubtitleCodec);
+  static NAN_SETTER(SetSubtitleCodec);
+  static NAN_GETTER(GetDataCodec);
+  static NAN_SETTER(SetDataCodec);
   static NAN_GETTER(GetMetadataHeaderPadding);
   static NAN_GETTER(GetOutputTsOffset);
   static NAN_GETTER(GetMaxAnalyzeDuration2);
   static NAN_GETTER(GetProbesize2);
   static NAN_GETTER(GetDumpSeparator);
-  static v8::Persistent<v8::FunctionTemplate> constructor;
-
-  ::AVFormatContext *this_;
-  bool alloc_;
+  static NAN_GETTER(GetDataCodecId);
+  static NAN_SETTER(SetDataCodecId);
   //std::list<NanAsyncWorker*> _async_queue;
 };
 

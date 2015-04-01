@@ -13,24 +13,22 @@ namespace avformat {
 class AVChapter : public node::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> exports);
-  static v8::Local<v8::Object> NewInstance(v8::Local<v8::Value> arg);
+  static v8::Local<v8::Object> NewInstance(::AVChapter* wrap);
   static bool HasInstance(v8::Handle<v8::Value> value);
-  inline ::AVChapter *This() { return this_; }
+  ::AVChapter* This(::AVChapter* wrap = nullptr);
 
  private:
-  explicit AVChapter(::AVChapter *ref = nullptr);
-  virtual ~AVChapter();
+  explicit AVChapter() : this_(nullptr) {}
+  ~AVChapter() {}
+  ::AVChapter* this_;
 
+  static v8::Persistent<v8::FunctionTemplate> constructor;
   static NAN_METHOD(New);
   static NAN_GETTER(GetId);
   static NAN_GETTER(GetTimeBase);
   static NAN_GETTER(GetStart);
   static NAN_GETTER(GetEnd);
   static NAN_GETTER(GetMetadata);
-  static v8::Persistent<v8::FunctionTemplate> constructor;
-
-  ::AVChapter *this_;
-  bool alloc_;
 };
 
 }  // namespace avformat

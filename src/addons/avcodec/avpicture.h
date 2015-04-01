@@ -13,30 +13,37 @@ namespace avcodec {
 class AVPicture : public node::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> exports);
-  static v8::Local<v8::Object> NewInstance(v8::Local<v8::Value> arg[3]);
+  static v8::Local<v8::Object> NewInstance(::AVPicture* wrap);
   static bool HasInstance(v8::Handle<v8::Value> value);
-  inline ::AVPicture *This() { return this_; }
+  ::AVPicture* This(::AVPicture* wrap = nullptr);
 
  private:
-  explicit AVPicture(::AVPicture *ref = nullptr, int w = 0, int h = 0);
-  virtual ~AVPicture();
+  explicit AVPicture();
+  ~AVPicture();
+  ::AVPicture* this_;
+  enum ::AVPixelFormat pix_fmt_;
+  int width_;
+  int height_;
 
+  static NAN_METHOD(GetSize);
+
+  static v8::Persistent<v8::FunctionTemplate> constructor;
   static NAN_METHOD(New);
   static NAN_METHOD(Alloc);
   static NAN_METHOD(Free);
   static NAN_METHOD(Fill);
   static NAN_METHOD(Layout);
-  static NAN_METHOD(GetSize);
   static NAN_METHOD(Copy);
   static NAN_METHOD(Crop);
   static NAN_METHOD(Pad);
-  static NAN_PROPERTY_GETTER(GetData);
-  static NAN_PROPERTY_GETTER(GetLinesize);
-  static v8::Persistent<v8::FunctionTemplate> constructor;
-
-  ::AVPicture *this_;
-  bool alloc_;
-  int w_, h_;
+  static NAN_GETTER(GetData);
+  static NAN_GETTER(GetLinesize);
+  static NAN_GETTER(GetPixFmt);
+  static NAN_SETTER(SetPixFmt);
+  static NAN_GETTER(GetWidth);
+  static NAN_SETTER(SetWidth);
+  static NAN_GETTER(GetHeight);
+  static NAN_SETTER(SetHeight);
 };
 
 }  // namespace avcodec

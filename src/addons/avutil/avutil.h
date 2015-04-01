@@ -10,21 +10,11 @@ extern "C" {
 namespace ffmpeg {
 namespace avutil {
 
-class AVUtil {
- public:
-  static void Init(v8::Handle<v8::Object> exports);
-
- private:
-  static NAN_METHOD(Version);
-  static NAN_METHOD(Configuration);
-  static NAN_METHOD(License);
-  static NAN_METHOD(GetTimeBaseQ);
-};
+extern void Init(v8::Handle<v8::Object> exports);
 
 class AVMediaType {
  public:
   static void Init(v8::Handle<v8::Object> exports);
-
  private:
   static NAN_METHOD(GetMediaTypeString);
 };
@@ -32,7 +22,6 @@ class AVMediaType {
 class AVPictureType {
  public:
   static void Init(v8::Handle<v8::Object> exports);
-
  private:
   static NAN_METHOD(GetPictureTypeChar);
 };

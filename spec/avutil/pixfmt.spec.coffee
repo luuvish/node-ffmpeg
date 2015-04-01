@@ -1,4 +1,4 @@
-ffmpeg = require '../lib/ffmpeg'
+ffmpeg = require '../../lib/ffmpeg'
 
 describe 'AVPixelFormat constants', ->
   AVPixelFormat = ffmpeg.avutil.AVPixelFormat
@@ -74,6 +74,20 @@ describe 'AVColorSpace constants', ->
     expect(AVColorSpace.AVCOL_SPC_YCGCO).toBe 8
     expect(AVColorSpace.AVCOL_SPC_BT2020_NCL).toBe 9
     expect(AVColorSpace.AVCOL_SPC_BT2020_CL).toBe 10
+
+  it 'getColorspaceName', ->
+    getColorspaceName = AVColorSpace.getColorspaceName
+    expect(getColorspaceName AVColorSpace.AVCOL_SPC_RGB).toBe 'GBR'
+    expect(getColorspaceName AVColorSpace.AVCOL_SPC_BT709).toBe 'bt709'
+    expect(getColorspaceName AVColorSpace.AVCOL_SPC_UNSPECIFIED).toBe ''
+    expect(getColorspaceName AVColorSpace.AVCOL_SPC_RESERVED).toBe ''
+    expect(getColorspaceName AVColorSpace.AVCOL_SPC_BT470BG).toBe 'bt470bg'
+    expect(getColorspaceName AVColorSpace.AVCOL_SPC_SMPTE170M).toBe 'smpte170m'
+    expect(getColorspaceName AVColorSpace.AVCOL_SPC_SMPTE240M).toBe 'smpte240m'
+    expect(getColorspaceName AVColorSpace.AVCOL_SPC_YCGCO).toBe 'YCgCo'
+    expect(getColorspaceName AVColorSpace.AVCOL_SPC_YCOCG).toBe 'YCgCo'
+    expect(getColorspaceName AVColorSpace.AVCOL_SPC_BT2020_NCL).toBe ''
+    expect(getColorspaceName AVColorSpace.AVCOL_SPC_BT2020_CL).toBe ''
 
 describe 'AVColorRange constants', ->
   AVColorRange = ffmpeg.avutil.AVColorRange

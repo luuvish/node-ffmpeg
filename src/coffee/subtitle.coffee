@@ -1,10 +1,12 @@
 
-FFmpeg = require './ffmpeg'
+ffmpeg = require './ffmpeg'
+avcodec = ffmpeg.avcodec
+AVDiscard = avcodec.AVDiscard
 
 module.exports =
 class Subtitle
   constructor: (@format) ->
-    @subtitles = (new FFmpeg.AVSubtitle for i in [0...5])
+    @subtitles = (new avcodec.AVSubtitle for i in [0...5])
 
     @options = @format.options
 
@@ -14,15 +16,14 @@ class Subtitle
 
   open: (stream) ->
     context = stream.codec
-    codec = FFmpeg.AVCodec.findDecoder(@options.subtt_codec_name or context.codec_id)
+    codec = avcodec.findDecoder(@options.subtt_codec_name or context.codec_id)
 
+    context.codec_id = codec.id
     context.lowres = Math.min @options.lowres, codec.max_lowres
-    context.workaround_bugs = @options.workaround_bugs
-    context.error_concealment = @options.error_concealment
 
-    context.flags |= FFmpeg.CODEC_FLAG_EMU_EDGE if context.lowres > 0
-    context.flags |= FFmpeg.CODEC_FLAG_EMU_EDGE if codec.capabilities & FFmpeg.CODEC_CAP_DR1
-    context.flags2 |= FFmpeg.CODEC_FLAG2_FAST if @options.fast
+    context.flags |= avcodec.CODEC_FLAG_EMU_EDGE if context.lowres > 0
+    context.flags |= avcodec.CODEC_FLAG_EMU_EDGE if codec.capabilities & avcodec.CODEC_CAP_DR1
+    context.flags2 |= avcodec.CODEC_FLAG2_FAST if @options.fast
 
     options = threads: 'auto'
     options.lowres = context.lowres if context.lowres > 0
@@ -31,10 +32,10 @@ class Subtitle
     @index = stream.index
     @stream = stream
     @context = stream.codec
-    @stream.discard = FFmpeg.AVDISCARD_DEFAULT
+    @stream.discard = AVDiscard.AVDISCARD_DEFAULT
 
   close: ->
-    @stream?.discard = FFmpeg.AVDISCARD_ALL
+    @stream?.discard = AVDiscard.AVDISCARD_ALL
     @context.close() if @context?.is_open
 
     @index = -1

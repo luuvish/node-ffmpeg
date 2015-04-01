@@ -6,7 +6,7 @@ import subprocess
 import sys
 
 
-FFMPEG_VER = '2.5'
+FFMPEG_VER = '2.6'
 SOURCE_ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
 

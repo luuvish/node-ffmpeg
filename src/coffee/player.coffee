@@ -1,6 +1,5 @@
 
-FFmpeg = require './ffmpeg'
-
+ffmpeg = require './ffmpeg'
 Format = require './format'
 Video = require './video'
 Audio = require './audio'

@@ -1,5 +1,5 @@
-#include "avutil/avutil.h"
 #include "avcodec/avpicture.h"
+#include "avutil/avframe.h"
 
 using namespace v8;
 
@@ -8,20 +8,6 @@ namespace avcodec {
 
 Persistent<FunctionTemplate> AVPicture::constructor;
 
-AVPicture::AVPicture(::AVPicture *ref, int w, int h)
-  : this_(ref), alloc_(false), w_(w), h_(h) {
-  if (this_ == nullptr) {
-    this_ = (::AVPicture *)av_mallocz(sizeof(::AVPicture));
-    alloc_ = true;
-  }
-}
-
-AVPicture::~AVPicture() {
-  if (this_ != nullptr && alloc_ == true) {
-    av_freep(&this_);
-  }
-}
-
 void AVPicture::Init(Handle<Object> exports) {
   NanScope();
 
@@ -29,30 +15,35 @@ void AVPicture::Init(Handle<Object> exports) {
   tpl->SetClassName(NanNew("AVPicture"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-  tpl->InstanceTemplate()->SetAccessor(NanNew("data"), GetData);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("linesize"), GetLinesize);
-
   NODE_SET_PROTOTYPE_METHOD(tpl, "alloc", Alloc);
   NODE_SET_PROTOTYPE_METHOD(tpl, "free", Free);
   NODE_SET_PROTOTYPE_METHOD(tpl, "fill", Fill);
   NODE_SET_PROTOTYPE_METHOD(tpl, "layout", Layout);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "copy", Copy);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "crop", Crop);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "pad", Pad);
 
-  NODE_SET_METHOD(tpl->GetFunction(), "getSize", GetSize);
-  NODE_SET_METHOD(tpl->GetFunction(), "copy", Copy);
-  NODE_SET_METHOD(tpl->GetFunction(), "crop", Crop);
-  NODE_SET_METHOD(tpl->GetFunction(), "pad", Pad);
+  Local<ObjectTemplate> inst = tpl->InstanceTemplate();
+
+  inst->SetAccessor(NanNew("data"), GetData);
+  inst->SetAccessor(NanNew("linesize"), GetLinesize);
+  inst->SetAccessor(NanNew("pix_fmt"), GetPixFmt, SetPixFmt);
+  inst->SetAccessor(NanNew("width"), GetWidth, SetWidth);
+  inst->SetAccessor(NanNew("height"), GetHeight, SetHeight);
 
   NanAssignPersistent(constructor, tpl);
+
   exports->Set(NanNew("AVPicture"), tpl->GetFunction());
+
+  NODE_SET_METHOD(tpl->GetFunction(), "getSize", GetSize);
 }
 
-Local<Object> AVPicture::NewInstance(Local<Value> arg[3]) {
+Local<Object> AVPicture::NewInstance(::AVPicture* wrap) {
   NanEscapableScope();
 
-  const int argc = 3;
-  Local<Value> argv[argc] = { arg[0], arg[1], arg[2] };
-  Local<Function> ctor = constructor->GetFunction();
-  Local<Object> instance = ctor->NewInstance(argc, argv);
+  Local<Function> cons = NanNew(constructor)->GetFunction();
+  Local<Object> instance = cons->NewInstance(0, nullptr);
+  ObjectWrap::Unwrap<AVPicture>(instance)->This(wrap);
 
   return NanEscapeScope(instance);
 }
@@ -63,23 +54,50 @@ bool AVPicture::HasInstance(Handle<Value> value) {
   return NanHasInstance(constructor, obj);
 }
 
+::AVPicture* AVPicture::This(::AVPicture* wrap) {
+  if (wrap != nullptr) this_ = wrap;
+  return this_;
+}
+
+AVPicture::AVPicture() : pix_fmt_(AV_PIX_FMT_NONE), width_(0), height_(0) {
+  this_ = (::AVPicture*)av_mallocz(sizeof(::AVPicture));
+  if (this_ == nullptr)
+    NanThrowTypeError("AVPicture: cannot allocation");
+}
+
+AVPicture::~AVPicture() {
+  if (this_ != nullptr)
+    av_freep(&this_);
+}
+
+NAN_METHOD(AVPicture::GetSize) {
+  NanScope();
+
+  if (!args[0]->IsNumber())
+    return NanThrowTypeError("getSize: AVPixelFormat enum required");
+  if (!args[1]->IsNumber())
+    return NanThrowTypeError("getSize: width integer required");
+  if (!args[2]->IsNumber())
+    return NanThrowTypeError("getSize: height integer required");
+
+  enum ::AVPixelFormat pix_fmt =
+    static_cast<enum ::AVPixelFormat>(args[0]->Int32Value());
+  int width = args[1]->Int32Value();
+  int height = args[2]->Int32Value();
+
+  int ret = avpicture_get_size(pix_fmt, width, height);
+  NanReturnValue(NanNew<Int32>(ret));
+}
+
 NAN_METHOD(AVPicture::New) {
-  NanEscapableScope();
+  NanScope();
 
   if (args.IsConstructCall()) {
-    ::AVPicture *ref = nullptr;
-    if (args[0]->IsExternal())
-      ref = static_cast<::AVPicture *>(External::Unwrap(args[0]));
-    int w = args[1]->IsNumber() ? args[1]->Int32Value() : 0;
-    int h = args[2]->IsNumber() ? args[2]->Int32Value() : 0;
-    AVPicture *obj = new AVPicture(ref, w, h);
+    AVPicture* obj = new AVPicture();
     obj->Wrap(args.This());
     NanReturnValue(args.This());
   } else {
-    const int argc = 3;
-    Local<Value> argv[argc] = { args[0], args[1], args[2] };
-    Local<Function> ctor = constructor->GetFunction();
-    NanReturnValue(ctor->NewInstance(argc, argv));
+    NanReturnUndefined();
   }
 }
 
@@ -87,31 +105,38 @@ NAN_METHOD(AVPicture::Alloc) {
   NanScope();
 
   if (!args[0]->IsNumber())
-    return NanThrowTypeError("pix_fmt required");
+    return NanThrowTypeError("alloc: AVPixelFormat enum required");
   if (!args[1]->IsNumber())
-    return NanThrowTypeError("width required");
+    return NanThrowTypeError("alloc: width integer required");
   if (!args[2]->IsNumber())
-    return NanThrowTypeError("height required");
+    return NanThrowTypeError("alloc: height integer required");
+
+  AVPicture* obj = Unwrap<AVPicture>(args.This());
 
   enum ::AVPixelFormat pix_fmt =
-    static_cast<enum ::AVPixelFormat>(args[0]->Uint32Value());
+    static_cast<enum ::AVPixelFormat>(args[0]->Int32Value());
   int width = args[1]->Int32Value();
   int height = args[2]->Int32Value();
 
-  AVPicture *obj = ObjectWrap::Unwrap<AVPicture>(args.This());
-  ::AVPicture *ref = obj->This();
+  int ret = avpicture_alloc(obj->This(), pix_fmt, width, height);
+  if (ret == 0) {
+    obj->pix_fmt_ = pix_fmt;
+    obj->width_ = width;
+    obj->height_ = height;
+  }
 
-  int ret = avpicture_alloc(ref, pix_fmt, width, height);
-
-  NanReturnValue(NanNew<Integer>(ret));
+  NanReturnValue(NanNew<Int32>(ret));
 }
 
 NAN_METHOD(AVPicture::Free) {
   NanScope();
 
-  AVPicture *obj = ObjectWrap::Unwrap<AVPicture>(args.This());
-  ::AVPicture *ref = obj->This();
-  avpicture_free(ref);
+  AVPicture* obj = Unwrap<AVPicture>(args.This());
+  avpicture_free(obj->This());
+  memset(obj->This(), 0, sizeof(::AVPicture));
+  obj->pix_fmt_ = AV_PIX_FMT_NONE;
+  obj->width_ = 0;
+  obj->height_ = 0;
 
   NanReturnUndefined();
 }
@@ -119,106 +144,114 @@ NAN_METHOD(AVPicture::Free) {
 NAN_METHOD(AVPicture::Fill) {
   NanScope();
 
-  int argc = args[0]->IsArray() ? 1 : 0;
+  bool hasUint8Array = false;
+  void* data = nullptr;
 
-  if (!args[0]->IsNumber() && !args[0]->IsArray())
-    return NanThrowTypeError("ptr required");
-  if (!args[argc + 0]->IsNumber())
-    return NanThrowTypeError("pix_fmt required");
-  if (!args[argc + 1]->IsNumber())
-    return NanThrowTypeError("width required");
-  if (!args[argc + 2]->IsNumber())
-    return NanThrowTypeError("height required");
-
-  const uint8_t *ptr = nullptr;
-  if (argc == 1) {
-    char *data = node::Buffer::Data(args[0]->ToObject());
-    ptr = reinterpret_cast<const uint8_t *>(data);
+  if (args[0]->IsObject()) {
+    Local<Object> arg0 = args[0]->ToObject();
+    hasUint8Array = arg0->HasIndexedPropertiesInExternalArrayData();
+    data = arg0->GetIndexedPropertiesExternalArrayData();
+    ExternalArrayType type = arg0->GetIndexedPropertiesExternalArrayDataType();
+    if (!hasUint8Array || type != kExternalUint8Array)
+      return NanThrowTypeError("fill: ptr Uint8Array required");
   }
 
+  int argc = hasUint8Array ? 1 : 0;
+
+  if (argc != 1)
+    return NanThrowTypeError("fill: ptr Uint8Array required");
+  if (!args[argc + 0]->IsNumber())
+    return NanThrowTypeError("fill: AVPixelFormat enum required");
+  if (!args[argc + 1]->IsNumber())
+    return NanThrowTypeError("fill: width integer required");
+  if (!args[argc + 2]->IsNumber())
+    return NanThrowTypeError("fill: height integer required");
+
+  AVPicture* obj = Unwrap<AVPicture>(args.This());
+
+  const uint8_t* ptr = nullptr;
+  if (argc == 1)
+    ptr = reinterpret_cast<const uint8_t*>(data);
   enum ::AVPixelFormat pix_fmt =
-    static_cast<enum ::AVPixelFormat>(args[argc + 0]->Uint32Value());
+    static_cast<enum ::AVPixelFormat>(args[argc + 0]->Int32Value());
   int width = args[argc + 1]->Int32Value();
   int height = args[argc + 2]->Int32Value();
 
-  AVPicture *obj = ObjectWrap::Unwrap<AVPicture>(args.This());
-  ::AVPicture *ref = obj->This();
+  int ret = avpicture_fill(obj->This(), ptr, pix_fmt, width, height);
+  if (ret > 0) {
+    obj->pix_fmt_ = pix_fmt;
+    obj->width_ = width;
+    obj->height_ = height;
+  }
 
-  int ret = avpicture_fill(ref, ptr, pix_fmt, width, height);
-
-  NanReturnValue(NanNew<Integer>(ret));
+  NanReturnValue(NanNew<Int32>(ret));
 }
 
 NAN_METHOD(AVPicture::Layout) {
   NanScope();
 
   if (!args[0]->IsNumber())
-    return NanThrowTypeError("pix_fmt required");
+    return NanThrowTypeError("layout: AVPixelFormat enum required");
   if (!args[1]->IsNumber())
-    return NanThrowTypeError("width required");
+    return NanThrowTypeError("layout: width integer required");
   if (!args[2]->IsNumber())
-    return NanThrowTypeError("height required");
-  if (!args[3]->IsArray())
-    return NanThrowTypeError("dest required");
+    return NanThrowTypeError("layout: height integer required");
+  if (!args[3]->IsObject())
+    return NanThrowTypeError("layout: dest Uint8Array required");
+
+  Local<Object> arg3 = args[3]->ToObject();
+  bool hasUint8Array = arg3->HasIndexedPropertiesInExternalArrayData();
+  void* data = arg3->GetIndexedPropertiesExternalArrayData();
+  ExternalArrayType type = arg3->GetIndexedPropertiesExternalArrayDataType();
+  int size = arg3->GetIndexedPropertiesExternalArrayDataLength();
+  if (!hasUint8Array || type != kExternalUint8Array)
+    return NanThrowTypeError("layout: dest Uint8Array required");
+
+  AVPicture* obj = Unwrap<AVPicture>(args.This());
 
   enum ::AVPixelFormat pix_fmt =
-    static_cast<enum ::AVPixelFormat>(args[0]->Uint32Value());
+    static_cast<enum ::AVPixelFormat>(args[0]->Int32Value());
   int width = args[1]->Int32Value();
   int height = args[2]->Int32Value();
-  Local<Object> buf = args[3]->ToObject();
-  uint8_t *dest = reinterpret_cast<uint8_t *>(node::Buffer::Data(buf));
-  int dest_size = static_cast<int>(node::Buffer::Length(buf));
+  unsigned char* dest = reinterpret_cast<unsigned char*>(data);
+  int dest_size = size;
 
-  AVPicture *obj = ObjectWrap::Unwrap<AVPicture>(args.This());
-  ::AVPicture *ref = obj->This();
-
-  int ret = avpicture_layout(ref, pix_fmt, width, height, dest, dest_size);
-
-  NanReturnValue(NanNew<Integer>(ret));
-}
-
-NAN_METHOD(AVPicture::GetSize) {
-  NanScope();
-
-  if (!args[0]->IsNumber())
-    return NanThrowTypeError("pix_fmt required");
-  if (!args[1]->IsNumber())
-    return NanThrowTypeError("width required");
-  if (!args[2]->IsNumber())
-    return NanThrowTypeError("height required");
-
-  enum ::AVPixelFormat pix_fmt =
-    static_cast<enum ::AVPixelFormat>(args[0]->Uint32Value());
-  int width = args[1]->Int32Value();
-  int height = args[2]->Int32Value();
-
-  int ret = avpicture_get_size(pix_fmt, width, height);
-
-  NanReturnValue(NanNew<Integer>(ret));
+  int ret = avpicture_layout(obj->This(),
+    pix_fmt, width, height, dest, dest_size);
+  NanReturnValue(NanNew<Int32>(ret));
 }
 
 NAN_METHOD(AVPicture::Copy) {
   NanScope();
 
-  if (!args[0]->IsObject() || !HasInstance(args[0]->ToObject()))
-    return NanThrowTypeError("dst required");
-  if (!args[1]->IsObject() || !HasInstance(args[1]->ToObject()))
-    return NanThrowTypeError("src required");
+  if (!AVPicture::HasInstance(args[0]) &&
+      !avutil::AVFrame::HasInstance(args[0]))
+    return NanThrowTypeError("copy: src AVPicture/AVFrame instance required");
+  if (!args[1]->IsNumber())
+    return NanThrowTypeError("copy: pix_fmt AVPixelFormat enum required");
   if (!args[2]->IsNumber())
-    return NanThrowTypeError("pix_fmt required");
+    return NanThrowTypeError("copy: width integer required");
   if (!args[3]->IsNumber())
-    return NanThrowTypeError("width required");
-  if (!args[4]->IsNumber())
-    return NanThrowTypeError("height required");
+    return NanThrowTypeError("copy: height integer required");
 
-  ::AVPicture *dst = ObjectWrap::Unwrap<AVPicture>(args[0]->ToObject())->This();
-  ::AVPicture *src = ObjectWrap::Unwrap<AVPicture>(args[1]->ToObject())->This();
+  AVPicture* obj = Unwrap<AVPicture>(args.This());
+
+  AVPicture* src;
+  if (AVPicture::HasInstance(args[0]))
+    src = Unwrap<AVPicture>(args[0]->ToObject());
+  else {
+    avutil::AVFrame* frame = Unwrap<avutil::AVFrame>(args[0]->ToObject());
+    src = reinterpret_cast<AVPicture*>(frame);
+  }
   enum ::AVPixelFormat pix_fmt =
-    static_cast<enum ::AVPixelFormat>(args[2]->Uint32Value());
-  int width = args[3]->Int32Value();
-  int height = args[4]->Int32Value();
+    static_cast<enum ::AVPixelFormat>(args[1]->Int32Value());
+  int width = args[2]->Int32Value();
+  int height = args[3]->Int32Value();
 
-  av_picture_copy(dst, src, pix_fmt, width, height);
+  av_picture_copy(obj->This(), src->This(), pix_fmt, width, height);
+  obj->pix_fmt_ = pix_fmt;
+  obj->width_ = width;
+  obj->height_ = height;
 
   NanReturnUndefined();
 }
@@ -226,108 +259,201 @@ NAN_METHOD(AVPicture::Copy) {
 NAN_METHOD(AVPicture::Crop) {
   NanScope();
 
-  if (!args[0]->IsObject() || !HasInstance(args[0]->ToObject()))
-    return NanThrowTypeError("dst required");
-  if (!args[1]->IsObject() || !HasInstance(args[1]->ToObject()))
-    return NanThrowTypeError("src required");
+  if (!AVPicture::HasInstance(args[0]) &&
+      !avutil::AVFrame::HasInstance(args[0]))
+    return NanThrowTypeError("crop: src AVPicture/AVFrame instance required");
+  if (!args[1]->IsNumber())
+    return NanThrowTypeError("crop: pix_fmt AVPixelFormat enum required");
   if (!args[2]->IsNumber())
-    return NanThrowTypeError("pix_fmt required");
+    return NanThrowTypeError("crop: top_band integer required");
   if (!args[3]->IsNumber())
-    return NanThrowTypeError("width required");
-  if (!args[4]->IsNumber())
-    return NanThrowTypeError("height required");
+    return NanThrowTypeError("crop: left_band integer required");
 
-  ::AVPicture *dst = ObjectWrap::Unwrap<AVPicture>(args[0]->ToObject())->This();
-  ::AVPicture *src = ObjectWrap::Unwrap<AVPicture>(args[1]->ToObject())->This();
+  AVPicture* obj = Unwrap<AVPicture>(args.This());
+
+  AVPicture* src;
+  if (AVPicture::HasInstance(args[0]))
+    src = Unwrap<AVPicture>(args[0]->ToObject());
+  else {
+    avutil::AVFrame* frame = Unwrap<avutil::AVFrame>(args[0]->ToObject());
+    src = reinterpret_cast<AVPicture*>(frame);
+  }
   enum ::AVPixelFormat pix_fmt =
-    static_cast<enum ::AVPixelFormat>(args[2]->Uint32Value());
-  int top_band = args[3]->Int32Value();
-  int left_band = args[4]->Int32Value();
+    static_cast<enum ::AVPixelFormat>(args[1]->Int32Value());
+  int top_band = args[2]->Int32Value();
+  int left_band = args[3]->Int32Value();
 
-  int ret = av_picture_crop(dst, src, pix_fmt, top_band, left_band);
+  int ret = av_picture_crop(obj->This(), src->This(),
+    pix_fmt, top_band, left_band);
+  if (ret == 0)
+    obj->pix_fmt_ = pix_fmt;
 
-  NanReturnValue(NanNew<Integer>(ret));
+  NanReturnValue(NanNew<Int32>(ret));
 }
 
 NAN_METHOD(AVPicture::Pad) {
   NanScope();
 
-  if (!args[0]->IsObject() || !HasInstance(args[0]->ToObject()))
-    return NanThrowTypeError("dst required");
-  if (!args[1]->IsObject() || !HasInstance(args[1]->ToObject()))
-    return NanThrowTypeError("src required");
+  if (!AVPicture::HasInstance(args[0]) &&
+      !avutil::AVFrame::HasInstance(args[0]))
+    return NanThrowTypeError("pad: src AVPicture/AVFrame instance required");
+  if (!args[1]->IsNumber())
+    return NanThrowTypeError("pad: width integer required");
   if (!args[2]->IsNumber())
-    return NanThrowTypeError("height required");
+    return NanThrowTypeError("pad: height integer required");
   if (!args[3]->IsNumber())
-    return NanThrowTypeError("width required");
+    return NanThrowTypeError("pad: pix_fmt AVPixelFormat enum required");
   if (!args[4]->IsNumber())
-    return NanThrowTypeError("pix_fmt required");
+    return NanThrowTypeError("pad: padtop integer required");
   if (!args[5]->IsNumber())
-    return NanThrowTypeError("padtop required");
+    return NanThrowTypeError("pad: padbottom integer required");
   if (!args[6]->IsNumber())
-    return NanThrowTypeError("padbottom required");
+    return NanThrowTypeError("pad: padleft integer required");
   if (!args[7]->IsNumber())
-    return NanThrowTypeError("padleft required");
-  if (!args[8]->IsNumber())
-    return NanThrowTypeError("padright required");
-  if (!args[9]->IsArray())
-    return NanThrowTypeError("color required");
+    return NanThrowTypeError("pad: padright integer required");
+  if (!args[8]->IsArray())
+    return NanThrowTypeError("pad: color int* required");
 
-  ::AVPicture *dst = ObjectWrap::Unwrap<AVPicture>(args[0]->ToObject())->This();
-  ::AVPicture *src = ObjectWrap::Unwrap<AVPicture>(args[1]->ToObject())->This();
+  AVPicture* obj = Unwrap<AVPicture>(args.This());
+
+  AVPicture* src;
+  if (AVPicture::HasInstance(args[0]))
+    src = Unwrap<AVPicture>(args[0]->ToObject());
+  else {
+    avutil::AVFrame* frame = Unwrap<avutil::AVFrame>(args[0]->ToObject());
+    src = reinterpret_cast<AVPicture*>(frame);
+  }
+  int width = args[1]->Int32Value();
   int height = args[2]->Int32Value();
-  int width = args[3]->Int32Value();
   enum ::AVPixelFormat pix_fmt =
-    static_cast<enum ::AVPixelFormat>(args[4]->Uint32Value());
-  int padtop = args[5]->Int32Value();
-  int padbottom = args[6]->Int32Value();
-  int padleft = args[7]->Int32Value();
-  int padright = args[8]->Int32Value();
+    static_cast<enum ::AVPixelFormat>(args[3]->Int32Value());
+  int padtop = args[4]->Int32Value();
+  int padbottom = args[5]->Int32Value();
+  int padleft = args[6]->Int32Value();
+  int padright = args[7]->Int32Value();
   int color[4] = {0, };
-  Local<Array> arr = args[9].As<Array>();
-  for (uint32_t i = 0; i < 4 && i < arr->Length(); i++) {
-    color[i] = arr->Get(i)->Uint32Value();
+  Local<Array> colors = args[8].As<Array>();
+  for (uint32_t i = 0; i < 4 && i < colors->Length(); i++) {
+    color[i] = colors->Get(i)->Uint32Value();
   }
 
-  int ret = av_picture_pad(dst, src, height, width, pix_fmt,
-                           padtop, padbottom, padleft, padright, color);
+  int ret = av_picture_pad(obj->This(), src->This(),
+    height, width, pix_fmt,
+    padtop, padbottom, padleft, padright, color);
+  if (ret == 0) {
+    obj->pix_fmt_ = pix_fmt;
+    obj->width_ = width;
+    obj->height_ = height;
+  }
 
-  NanReturnValue(NanNew<Integer>(ret));
+  NanReturnValue(NanNew<Int32>(ret));
 }
 
-NAN_PROPERTY_GETTER(AVPicture::GetData) {
+NAN_GETTER(AVPicture::GetData) {
   NanScope();
 
-  AVPicture *obj = ObjectWrap::Unwrap<AVPicture>(args.This());
-  ::AVPicture *ref = obj->This();
+  AVPicture* obj = Unwrap<AVPicture>(args.This());
+  ::AVPicture* wrap = obj->This();
 
-  uint32_t size = obj->w_ * obj->h_;
-  Local<Array> ret = NanNew<Array>(AV_NUM_DATA_POINTERS);
+  int total = avpicture_get_size(obj->pix_fmt_, obj->width_, obj->height_);
+  ExternalArrayType type = kExternalUint8Array;
+  int size[AV_NUM_DATA_POINTERS] = {0, };
+
   for (uint32_t i = 0; i < AV_NUM_DATA_POINTERS; i++) {
-    uint8_t *data = ref->data[i];
+    size[i] = 0;
+    if (wrap->data[i]) {
+      if (i < AV_NUM_DATA_POINTERS - 1 && wrap->data[i + 1])
+        size[i] = wrap->data[i + 1] - wrap->data[i];
+      else
+        size[i] = total;
+      total -= size[i];
+    }
+  }
+
+  Local<Array> rets = NanNew<Array>(AV_NUM_DATA_POINTERS);
+  for (uint32_t i = 0; i < AV_NUM_DATA_POINTERS; i++) {
+    Local<Object> ret = NanNew<Object>();
+    uint8_t* data = wrap->data[i];
     if (data)
-      //ret->Set(i, NanBufferUse(reinterpret_cast<char *>(data), size));
-      ret->Set(i, NanNewBufferHandle(reinterpret_cast<char *>(data), size));
-    else
-      ret->Set(i, NanNull());
+      ret->SetIndexedPropertiesToExternalArrayData(data, type, size[i]);
+    rets->Set(i, ret);
   }
 
-  NanReturnValue(ret);
+  NanReturnValue(rets);
 }
 
-NAN_PROPERTY_GETTER(AVPicture::GetLinesize) {
+NAN_GETTER(AVPicture::GetLinesize) {
   NanScope();
 
-  AVPicture *obj = ObjectWrap::Unwrap<AVPicture>(args.This());
-  ::AVPicture *ref = obj->This();
+  ::AVPicture* wrap = Unwrap<AVPicture>(args.This())->This();
 
-  Local<Array> ret = NanNew<Array>(AV_NUM_DATA_POINTERS);
+  Local<Array> rets = NanNew<Array>(AV_NUM_DATA_POINTERS);
   for (uint32_t i = 0; i < AV_NUM_DATA_POINTERS; i++) {
-    int linesize = ref->linesize[i];
-    ret->Set(i, NanNew<Integer>(linesize));
+    int linesize = wrap->linesize[i];
+    rets->Set(i, NanNew<Int32>(linesize));
   }
 
-  NanReturnValue(ret);
+  NanReturnValue(rets);
+}
+
+NAN_GETTER(AVPicture::GetPixFmt) {
+  NanScope();
+
+  AVPicture* obj = Unwrap<AVPicture>(args.This());
+
+  enum ::AVPixelFormat pix_fmt = obj->pix_fmt_;
+  NanReturnValue(NanNew<Int32>(pix_fmt));
+}
+
+NAN_SETTER(AVPicture::SetPixFmt) {
+  NanScope();
+
+  if (!value->IsNumber())
+    NanThrowTypeError("pix_fmt: AVPixelFormat num required");
+
+  AVPicture* obj = Unwrap<AVPicture>(args.This());
+
+  obj->pix_fmt_ = static_cast<enum ::AVPixelFormat>(value->Int32Value());
+}
+
+NAN_GETTER(AVPicture::GetWidth) {
+  NanScope();
+
+  AVPicture* obj = Unwrap<AVPicture>(args.This());
+
+  int width = obj->width_;
+  NanReturnValue(NanNew<Int32>(width));
+}
+
+NAN_SETTER(AVPicture::SetWidth) {
+  NanScope();
+
+  if (!value->IsNumber())
+    NanThrowTypeError("width: integer required");
+
+  AVPicture* obj = Unwrap<AVPicture>(args.This());
+
+  obj->width_ = value->Int32Value();
+}
+
+NAN_GETTER(AVPicture::GetHeight) {
+  NanScope();
+
+  AVPicture* obj = Unwrap<AVPicture>(args.This());
+
+  int height = obj->height_;
+  NanReturnValue(NanNew<Int32>(height));
+}
+
+NAN_SETTER(AVPicture::SetHeight) {
+  NanScope();
+
+  if (!value->IsNumber())
+    NanThrowTypeError("height: integer required");
+
+  AVPicture* obj = Unwrap<AVPicture>(args.This());
+
+  obj->height_ = value->Int32Value();
 }
 
 }  // namespace avcodec

@@ -5,16 +5,15 @@ extern "C" {
 #include "avformat/avformatcontext.h"
 #include "avformat/avinputformat.h"
 #include "avformat/avoutputformat.h"
+#include "avformat/avstream.h"
 #include "avformat/avprogram.h"
 #include "avformat/avchapter.h"
-#include "avformat/avstream.h"
 #include "avcodec/avcodec.h"
-#include "avcodec/avcodeccontext.h"
 #include "avcodec/avpacket.h"
 #include "avutil/avutil.h"
+#include "avutil/avframe.h"
 
 using namespace v8;
-using namespace ffmpeg;
 
 namespace ffmpeg {
 namespace avformat {
@@ -51,20 +50,6 @@ void AVReadFrameWorker::HandleOKCallback() {
 
 Persistent<FunctionTemplate> AVFormatContext::constructor;
 
-AVFormatContext::AVFormatContext(::AVFormatContext *ref)
-  : this_(ref), alloc_(false) {
-  if (this_ == nullptr) {
-    this_ = avformat_alloc_context();
-    alloc_ = true;
-  }
-}
-
-AVFormatContext::~AVFormatContext() {
-  if (this_ != nullptr && alloc_ == true) {
-    avformat_free_context(this_);
-  }
-}
-
 void AVFormatContext::Init(Handle<Object> exports) {
   NanScope();
 
@@ -72,39 +57,50 @@ void AVFormatContext::Init(Handle<Object> exports) {
   tpl->SetClassName(NanNew("AVFormatContext"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
+  NODE_SET_PROTOTYPE_METHOD(tpl, "newStream", NewStream);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "newProgram", NewProgram);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "openOutput", OpenOutput);
   NODE_SET_PROTOTYPE_METHOD(tpl, "openInput", OpenInput);
-  NODE_SET_PROTOTYPE_METHOD(tpl, "closeInput", CloseInput);
-/*
   NODE_SET_PROTOTYPE_METHOD(tpl, "findStreamInfo", FindStreamInfo);
   NODE_SET_PROTOTYPE_METHOD(tpl, "findProgramFromStream",
                             FindProgramFromStream);
   NODE_SET_PROTOTYPE_METHOD(tpl, "findBestStream", FindBestStream);
-*/
   NODE_SET_PROTOTYPE_METHOD(tpl, "readFrame", ReadFrame);
   NODE_SET_PROTOTYPE_METHOD(tpl, "seekFrame", SeekFrame);
   NODE_SET_PROTOTYPE_METHOD(tpl, "seekFile", SeekFile);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "flush", Flush);
   NODE_SET_PROTOTYPE_METHOD(tpl, "readPlay", ReadPlay);
   NODE_SET_PROTOTYPE_METHOD(tpl, "readPause", ReadPause);
-
-  //NODE_SET_PROTOTYPE_METHOD(tpl, "writeHeader", WriteHeader);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "closeOutput", CloseOutput);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "closeInput", CloseInput);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "writeHeader", WriteHeader);
   NODE_SET_PROTOTYPE_METHOD(tpl, "writeFrame", WriteFrame);
   NODE_SET_PROTOTYPE_METHOD(tpl, "writeInterleavedFrame",
                             WriteInterleavedFrame);
-  //
+  NODE_SET_PROTOTYPE_METHOD(tpl, "writeUncodedFrame", WriteUncodedFrame);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "writeInterleavedUncodedFrame",
+                            WriteInterleavedUncodedFrame);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "writeUncodedFrameQuery",
+                            WriteUncodedFrameQuery);
   NODE_SET_PROTOTYPE_METHOD(tpl, "writeTrailer", WriteTrailer);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "getOutputTimestamp", GetOutputTimestamp);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "findDefaultStreamIndex",
+                            FindDefaultStreamIndex);
   NODE_SET_PROTOTYPE_METHOD(tpl, "dumpFormat", DumpFormat);
-/*
   NODE_SET_PROTOTYPE_METHOD(tpl, "guessSampleAspectRatio",
                             GuessSampleAspectRatio);
   NODE_SET_PROTOTYPE_METHOD(tpl, "guessFrameRate", GuessFrameRate);
-*/
+  NODE_SET_PROTOTYPE_METHOD(tpl, "matchStreamSpecifier", MatchStreamSpecifier);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "queueAttachedPictures",
+                            QueueAttachedPictures);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "injectGlobalSideData", InjectGlobalSideData);
 
   Local<ObjectTemplate> inst = tpl->InstanceTemplate();
 
-  //inst->SetAccessor(NanNew("iformat"), GetIFormat);
-  //inst->SetAccessor(NanNew("oformat"), GetOFormat, SetOFormat);
+  inst->SetAccessor(NanNew("iformat"), GetIFormat);
+  inst->SetAccessor(NanNew("oformat"), GetOFormat, SetOFormat);
   inst->SetAccessor(NanNew("ctx_flags"), GetCtxFlags);
-  //inst->SetAccessor(NanNew("streams"), GetStreams);
+  inst->SetAccessor(NanNew("streams"), GetStreams);
   inst->SetAccessor(NanNew("filename"), GetFilename, SetFilename);
   inst->SetAccessor(NanNew("start_time"), GetStartTime);
   inst->SetAccessor(NanNew("duration"), GetDuration);
@@ -112,14 +108,14 @@ void AVFormatContext::Init(Handle<Object> exports) {
   inst->SetAccessor(NanNew("packet_size"), GetPacketSize);
   inst->SetAccessor(NanNew("max_delay"), GetMaxDelay);
   inst->SetAccessor(NanNew("flags"), GetFlags, SetFlags);
-  //inst->SetAccessor(NanNew("programs"), GetPrograms);
+  inst->SetAccessor(NanNew("programs"), GetPrograms);
   inst->SetAccessor(NanNew("video_codec_id"), GetVideoCodecId, SetVideoCodecId);
   inst->SetAccessor(NanNew("audio_codec_id"), GetAudioCodecId, SetAudioCodecId);
   inst->SetAccessor(NanNew("subtitle_codec_id"),
                     GetSubtitleCodecId, SetSubtitleCodecId);
   inst->SetAccessor(NanNew("max_index_size"), GetMaxIndexSize, SetMaxIndexSize);
   inst->SetAccessor(NanNew("max_picture_buffer"), GetMaxPictureBuffer);
-  //inst->SetAccessor(NanNew("chapters"), GetChapters);
+  inst->SetAccessor(NanNew("chapters"), GetChapters);
   inst->SetAccessor(NanNew("metadata"), GetMetadata);
   inst->SetAccessor(NanNew("start_time_realtime"),
                     GetStartTimeRealtime, SetStartTimeRealtime);
@@ -150,34 +146,31 @@ void AVFormatContext::Init(Handle<Object> exports) {
   inst->SetAccessor(NanNew("format_probesize"), GetFormatProbesize);
   inst->SetAccessor(NanNew("codec_whitelist"), GetCodecWhitelist);
   inst->SetAccessor(NanNew("format_whitelist"), GetFormatWhitelist);
-  inst->SetAccessor(NanNew("data_offset"), GetDataOffset);
-  inst->SetAccessor(NanNew("raw_packet_buffer_remaining_size"),
-                    GetRawPacketBufferRemainingSize);
-  inst->SetAccessor(NanNew("offset"), GetOffset);
-  inst->SetAccessor(NanNew("offset_timebase"), GetOffsetTimebase);
   inst->SetAccessor(NanNew("io_repositioned"), GetIoRepositioned);
-  //inst->SetAccessor(NanNew("video_codec"), GetVideoCodec, SetVideoCodec);
-  //inst->SetAccessor(NanNew("audio_codec"), GetAudioCodec, SetAudioCodec);
-  //inst->SetAccessor(NanNew("subtitle_codec"),
-  //                  GetSubtitleCodec, SetSubtitleCodec);
+  inst->SetAccessor(NanNew("video_codec"), GetVideoCodec, SetVideoCodec);
+  inst->SetAccessor(NanNew("audio_codec"), GetAudioCodec, SetAudioCodec);
+  inst->SetAccessor(NanNew("subtitle_codec"),
+                    GetSubtitleCodec, SetSubtitleCodec);
+  inst->SetAccessor(NanNew("data_codec"), GetDataCodec, SetDataCodec);
   inst->SetAccessor(NanNew("metadata_header_padding"),
                     GetMetadataHeaderPadding);
   inst->SetAccessor(NanNew("output_ts_offset"), GetOutputTsOffset);
   inst->SetAccessor(NanNew("max_analyze_duration2"), GetMaxAnalyzeDuration2);
   inst->SetAccessor(NanNew("probesize2"), GetProbesize2);
   inst->SetAccessor(NanNew("dump_separator"), GetDumpSeparator);
+  inst->SetAccessor(NanNew("data_codec_id"), GetDataCodecId, SetDataCodecId);
 
   NanAssignPersistent(constructor, tpl);
+
   exports->Set(NanNew("AVFormatContext"), tpl->GetFunction());
 }
 
-Local<Object> AVFormatContext::NewInstance(Local<Value> arg) {
+Local<Object> AVFormatContext::NewInstance(::AVFormatContext* wrap) {
   NanEscapableScope();
 
-  const int argc = 1;
-  Local<Value> argv[argc] = { arg };
-  Local<Function> ctor = constructor->GetFunction();
-  Local<Object> instance = ctor->NewInstance(argc, argv);
+  Local<Function> cons = NanNew(constructor)->GetFunction();
+  Local<Object> instance = cons->NewInstance(0, nullptr);
+  ObjectWrap::Unwrap<AVFormatContext>(instance)->This(wrap);
 
   return NanEscapeScope(instance);
 }
@@ -188,33 +181,130 @@ bool AVFormatContext::HasInstance(Handle<Value> value) {
   return NanHasInstance(constructor, obj);
 }
 
+::AVFormatContext* AVFormatContext::This(::AVFormatContext* wrap) {
+  if (wrap != nullptr) this_ = wrap;
+  return this_;
+}
+
+AVFormatContext::AVFormatContext() : this_(nullptr) {
+  this_ = avformat_alloc_context();
+  if (this_ == nullptr)
+    NanThrowTypeError("AVFormatContext: cannot allocation");
+}
+
+AVFormatContext::~AVFormatContext() {
+  if (this_ != nullptr)
+    avformat_free_context(this_);
+}
+
 NAN_METHOD(AVFormatContext::New) {
-  NanEscapableScope();
+  NanScope();
 
   if (args.IsConstructCall()) {
-    ::AVFormatContext *ref = nullptr;
-    if (args[0]->IsExternal())
-      ref = static_cast<::AVFormatContext *>(External::Unwrap(args[0]));
-    AVFormatContext *obj = new AVFormatContext(ref);
+    AVFormatContext* obj = new AVFormatContext();
     obj->Wrap(args.This());
     NanReturnValue(args.This());
   } else {
-    const int argc = 1;
-    Local<Value> argv[argc] = { args[0] };
-    Local<Function> ctor = constructor->GetFunction();
-    NanReturnValue(ctor->NewInstance(argc, argv));
+    Local<Function> cons = NanNew(constructor)->GetFunction();
+    NanReturnValue(cons->NewInstance(0, nullptr));
   }
 }
 
+NAN_METHOD(AVFormatContext::NewStream) {
+  NanScope();
+
+  if (!avcodec::AVCodec::HasInstance(args[0]))
+    return NanThrowTypeError("newStream: AVCodec instance required");
+
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  ::AVCodec* codec = Unwrap<avcodec::AVCodec>(args[0]->ToObject())->This();
+  ::AVStream* stream = avformat_new_stream(wrap, codec);
+  if (stream)
+    NanReturnValue(AVStream::NewInstance(stream));
+  else
+    NanReturnNull();
+}
+
+NAN_METHOD(AVFormatContext::NewProgram) {
+  NanScope();
+
+  if (!args[0]->IsNumber())
+    return NanThrowTypeError("newProgram: id integer required");
+
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  int id = args[0]->Int32Value();
+  ::AVProgram* program = av_new_program(wrap, id);
+  if (program)
+    NanReturnValue(AVProgram::NewInstance(program));
+  else
+    NanReturnNull();
+}
+
+NAN_METHOD(AVFormatContext::OpenOutput) {
+  NanScope();
+
+  ::AVFormatContext* ctx = nullptr;
+  ::AVOutputFormat* oformat = nullptr;
+  NanUtf8String* format = nullptr;
+  NanUtf8String* filename = nullptr;
+  int argc = 0;
+
+  if (!args[argc]->IsUndefined() && args[argc]->IsObject()) {
+    if (AVOutputFormat::HasInstance(args[argc])) {
+      oformat = Unwrap<AVOutputFormat>(args[argc]->ToObject())->This();
+      argc++;
+    }
+  }
+
+  if (!args[argc]->IsUndefined()) {
+    if (!args[argc]->IsNull() && !args[argc]->IsString())
+      return NanThrowTypeError("openOutput: format string required");
+    format = new NanUtf8String(args[argc]);
+    argc++;
+  }
+
+  if (!args[argc]->IsUndefined()) {
+    if (!args[argc]->IsNull() && !args[argc]->IsString())
+      return NanThrowTypeError("openOutput: filename string required");
+    filename = new NanUtf8String(args[argc]);
+    argc++;
+  }
+
+  AVFormatContext* obj = Unwrap<AVFormatContext>(args.This());
+
+  int ret = avformat_alloc_output_context2(
+    &ctx, oformat,
+    format != nullptr ? **format : nullptr,
+    filename != nullptr ? **filename : nullptr);
+
+  if (format) delete format;
+  if (filename) delete filename;
+
+  if (ret == 0) {
+    ::AVFormatContext* wrap = obj->This();
+    if (wrap) avformat_free_context(wrap);
+    obj->This(ctx);
+  }
+
+  NanReturnValue(NanNew<Int32>(ret));
+}
+
 NAN_METHOD(AVFormatContext::OpenInput) {
-  NanEscapableScope();
+  NanScope();
 
   if (!args[0]->IsString())
     return NanThrowTypeError("openInput: filename string required");
 
-  String::Utf8Value filename(args[0]);
-  ::AVInputFormat *iformat = nullptr;
-  ::AVDictionary *options = nullptr;
+  ::AVFormatContext* ctx = nullptr;
+  NanUtf8String filename(args[0]);
+  ::AVInputFormat* iformat = nullptr;
+  ::AVDictionary* options = nullptr;
   int argc = 1;
 
   if (!args[argc]->IsUndefined() && args[argc]->IsObject()) {
@@ -231,8 +321,8 @@ NAN_METHOD(AVFormatContext::OpenInput) {
       Local<Value> key = keys->Get(i);
       Local<Value> val = opts->Get(key);
       if (val->IsNumber() || val->IsString()) {
-        String::Utf8Value key_str(key);
-        String::Utf8Value val_str(val);
+        NanUtf8String key_str(key);
+        NanUtf8String val_str(val);
         av_dict_set(&options, *key_str, *val_str, 0);
       }
     }
@@ -244,118 +334,138 @@ NAN_METHOD(AVFormatContext::OpenInput) {
     return NanThrowTypeError("openInput: invalid arguments");
   }
 
-  AVFormatContext *obj = Unwrap<AVFormatContext>(args.This());
+  AVFormatContext* obj = Unwrap<AVFormatContext>(args.This());
 
-  int ret = avformat_open_input(&obj->this_, *filename, iformat, &options);
+  int ret = avformat_open_input(&ctx, *filename, iformat, &options);
 
-  ::AVDictionaryEntry *t = nullptr;
+  ::AVDictionaryEntry* t = nullptr;
   if ((t = av_dict_get(options, "", nullptr, AV_DICT_IGNORE_SUFFIX))) {
-      av_log(nullptr, AV_LOG_ERROR, "Option %s not found.\n", t->key);
-      ret = AVERROR_OPTION_NOT_FOUND;
+    av_log(nullptr, AV_LOG_ERROR, "Option %s not found.\n", t->key);
+    ret = AVERROR_OPTION_NOT_FOUND;
   }
   av_dict_free(&options);
 
   // FIXME hack, ffplay maybe should not use url_feof() to test for the end
-  if (obj->this_ && obj->this_->pb)
-      obj->this_->pb->eof_reached = 0;
+  if (ctx && ctx->pb)
+      ctx->pb->eof_reached = 0;
 
-  if (!obj->this_)
-    obj->this_ = avformat_alloc_context();
+  if (ret == 0) {
+    ::AVFormatContext* wrap = obj->This();
+    if (wrap) avformat_close_input(&wrap);
+    obj->This(ctx);
+  }
 
-  NanReturnValue(NanNew<Integer>(ret));
+  NanReturnValue(NanNew<Int32>(ret));
 }
 
-NAN_METHOD(AVFormatContext::CloseInput) {
-  NanEscapableScope();
-
-  AVFormatContext *obj = Unwrap<AVFormatContext>(args.This());
-
-  avformat_close_input(&obj->this_);
-
-  if (!obj->this_)
-    obj->this_ = avformat_alloc_context();
-
-  NanReturnUndefined();
-}
-
-/*
 NAN_METHOD(AVFormatContext::FindStreamInfo) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  if (!ref->nb_streams)
+  if (wrap->nb_streams == 0)
     NanReturnNull();
 
-  ::AVDictionary **opts =
-    (::AVDictionary **)av_mallocz(ref->nb_streams * sizeof(::AVDictionary *));
+  ::AVDictionary **opts = (::AVDictionary**)
+    av_mallocz_array(wrap->nb_streams, sizeof(*opts));
   if (!opts)
     return NanThrowError("findStreamInfo: dictionary of streams memory alloaction error");
+  for (uint32_t i = 0; i < wrap->nb_streams; i++)
+    opts[i] = nullptr;
+  int ret = avformat_find_stream_info(wrap, opts);
 
-  int ret = avformat_find_stream_info(ref, opts);
+  Local<Array> infos = NanNew<Array>(wrap->nb_streams);
+  for (uint32_t i = 0; i < wrap->nb_streams; i++) {
+    Local<Object> info = NanNew<Object>();
+    AVDictionaryEntry* t = nullptr;
+    while ((t = av_dict_get(opts[i], "", t, AV_DICT_IGNORE_SUFFIX)))
+      info->Set(NanNew<String>(t->key), NanNew<String>(t->value));
+    infos->Set(i, info);
+  }
 
-  for (uint32_t i = 0; i < ref->nb_streams; i++)
+  for (uint32_t i = 0; i < wrap->nb_streams; i++)
     av_dict_free(&opts[i]);
   av_freep(&opts);
 
-  NanReturnValue(NanNew<Integer>(ret));
+  if (ret == 0)
+    NanReturnValue(infos);
+  else
+    NanReturnValue(NanNew<Int32>(ret));
 }
 
 NAN_METHOD(AVFormatContext::FindProgramFromStream) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVProgram *last = nullptr;
-  if (args[0]->IsObject()) {
-    if (!AVProgram::HasInstance(args[0]))
-      return NanThrowTypeError("findProgramFromStream: program required");
-    last = Unwrap<AVProgram>(args[0]->ToObject())->This();
+  ::AVProgram* last = nullptr;
+  int argc = 0;
+
+  if (AVProgram::HasInstance(args[argc])) {
+    last = Unwrap<AVProgram>(args[argc]->ToObject())->This();
+    argc++;
   }
-  if (!args[1]->IsNumber())
-    return NanThrowTypeError("stream_index required");
-  int stream_index = args[1]->Int32Value();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
+  if (!args[argc]->IsNumber())
+    return NanThrowTypeError("findProgramFromStream: stream_index integer required");
 
-  ::AVProgram *program = av_find_program_from_stream(ref, last, stream_index);
-  if (!program)
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  int s = args[argc]->Int32Value();
+  ::AVProgram* ret = av_find_program_from_stream(wrap, last, s);
+  if (ret != nullptr)
+    NanReturnValue(AVProgram::NewInstance(ret));
+  else
     NanReturnNull();
-  Local<Value> ret = AVProgram::NewInstance(program);
-
-  NanReturnValue(ret);
 }
 
 NAN_METHOD(AVFormatContext::FindBestStream) {
-  NanEscapableScope();
+  NanScope();
 
-  if (!args[0]->IsNumber() || !args[1]->IsNumber() ||
-      !args[2]->IsNumber() || !args[3]->IsNumber())
-    return NanThrowTypeError("media type, wanted_stream_nb, "
-                             "related_stream, flags required");
+  if (!args[0]->IsNumber())
+    return NanThrowTypeError("findBestStream: media type enum required");
+  if (!args[1]->IsNumber())
+    return NanThrowTypeError("findBestStream: wanted_stream_nb integer required");
+  if (!args[2]->IsNumber())
+    return NanThrowTypeError("findBestStream: related_stream integer required");
+  if (!args[3]->IsNumber())
+    return NanThrowTypeError("findBestStream: flags integer required");
+
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
   enum ::AVMediaType type =
-    static_cast<enum ::AVMediaType>(args[0]->Uint32Value());
+    static_cast<enum ::AVMediaType>(args[0]->Int32Value());
   int wanted_stream_nb = args[1]->Int32Value();
   int related_stream = args[2]->Int32Value();
   int flags = args[3]->Int32Value();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
+  ::AVCodec* decoder_ret = nullptr;
+  int ret = av_find_best_stream(
+    wrap, type, wanted_stream_nb, related_stream,
+    &decoder_ret, flags);
 
-  ::AVCodec *decoder_ret = nullptr;
-  int ret = av_find_best_stream(ref,
-                                type, wanted_stream_nb, related_stream,
-                                &decoder_ret, flags);
-
-  NanReturnValue(NanNew<Integer>(ret));
+  Local<Array> rets = NanNew<Array>(2);
+  rets->Set(0, NanNew<Int32>(ret));
+  if (ret >= 0)
+    rets->Set(1, avcodec::AVCodec::NewInstance(decoder_ret));
+  NanReturnValue(rets);
 }
-*/
+
 NAN_METHOD(AVFormatContext::ReadFrame) {
-  NanEscapableScope();
+  NanScope();
 
   if (!avcodec::AVPacket::HasInstance(args[0]))
     return NanThrowTypeError("readFrame: AVPacket instance expected");
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ::AVPacket *pkt = Unwrap<avcodec::AVPacket>(args[0]->ToObject())->This();
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  ::AVPacket* pkt = Unwrap<avcodec::AVPacket>(args[0]->ToObject())->This();
 
   if (args[1]->IsFunction()) {
     //NanCallback *callback = new NanCallback(Local<Function>::Cast(args[1]));
@@ -366,14 +476,13 @@ NAN_METHOD(AVFormatContext::ReadFrame) {
     //  NanAsyncQueueWorker(obj->_async_queue.front());
     NanReturnUndefined();
   } else {
-    int ret = av_read_frame(ref, pkt);
-
-    NanReturnValue(NanNew<Integer>(ret));
+    int ret = av_read_frame(wrap, pkt);
+    NanReturnValue(NanNew<Int32>(ret));
   }
 }
 
 NAN_METHOD(AVFormatContext::SeekFrame) {
-  NanEscapableScope();
+  NanScope();
 
   if (!args[0]->IsNumber())
     return NanThrowTypeError("seekFrame: stream_index integer required");
@@ -382,18 +491,20 @@ NAN_METHOD(AVFormatContext::SeekFrame) {
   if (!args[2]->IsNumber())
     return NanThrowTypeError("seekFrame: flags integer required");
 
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
   int stream_index = args[0]->Int32Value();
   int64_t timestamp = args[1]->IntegerValue();
   int flags = args[2]->Int32Value();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int ret = av_seek_frame(ref, stream_index, timestamp, flags);
-
-  NanReturnValue(NanNew<Integer>(ret));
+  int ret = av_seek_frame(wrap, stream_index, timestamp, flags);
+  NanReturnValue(NanNew<Int32>(ret));
 }
 
 NAN_METHOD(AVFormatContext::SeekFile) {
-  NanEscapableScope();
+  NanScope();
 
   if (!args[0]->IsNumber())
     return NanThrowTypeError("seekFile: stream_index integer required");
@@ -406,40 +517,81 @@ NAN_METHOD(AVFormatContext::SeekFile) {
   if (!args[4]->IsNumber())
     return NanThrowTypeError("seekFile: flags integer required");
 
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
   int stream_index = args[0]->Int32Value();
   int64_t min_ts = args[1]->IntegerValue();
   int64_t ts = args[2]->IntegerValue();
   int64_t max_ts = args[3]->IntegerValue();
   int flags = args[4]->Int32Value();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int ret = avformat_seek_file(ref, stream_index, min_ts, ts, max_ts, flags);
+  int ret = avformat_seek_file(wrap, stream_index, min_ts, ts, max_ts, flags);
+  NanReturnValue(NanNew<Int32>(ret));
+}
 
-  NanReturnValue(NanNew<Integer>(ret));
+NAN_METHOD(AVFormatContext::Flush) {
+  NanScope();
+
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  int ret = avformat_flush(wrap);
+  NanReturnValue(NanNew<Int32>(ret));
 }
 
 NAN_METHOD(AVFormatContext::ReadPlay) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int ret = av_read_play(ref);
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(ret));
+  int ret = av_read_play(wrap);
+  NanReturnValue(NanNew<Int32>(ret));
 }
 
 NAN_METHOD(AVFormatContext::ReadPause) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int ret = av_read_pause(ref);
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(ret));
+  int ret = av_read_pause(wrap);
+  NanReturnValue(NanNew<Int32>(ret));
 }
-/*
-NAN_METHOD(AVFormatContext::WriteHeader) {
-  NanEscapableScope();
 
-  ::AVDictionary *options = nullptr;
+NAN_METHOD(AVFormatContext::CloseOutput) {
+  NanScope();
+
+  AVFormatContext* obj = Unwrap<AVFormatContext>(args.This());
+
+  ::AVFormatContext* wrap = obj->This();
+  if (wrap) avformat_free_context(wrap);
+  obj->this_ = nullptr;
+
+  NanReturnValue(args.This());
+}
+
+NAN_METHOD(AVFormatContext::CloseInput) {
+  NanScope();
+
+  AVFormatContext* obj = Unwrap<AVFormatContext>(args.This());
+
+  ::AVFormatContext* wrap = obj->This();
+  if (wrap) avformat_close_input(&wrap);
+  obj->this_ = nullptr;
+
+  NanReturnValue(args.This());
+}
+
+NAN_METHOD(AVFormatContext::WriteHeader) {
+  NanScope();
+
+  ::AVDictionary* options = nullptr;
 
   if (!args[0]->IsUndefined() && args[0]->IsObject()) {
     Local<Object> opts = args[0]->ToObject();
@@ -448,69 +600,160 @@ NAN_METHOD(AVFormatContext::WriteHeader) {
       Local<Value> key = keys->Get(i);
       Local<Value> val = opts->Get(key);
       if (val->IsNumber() || val->IsString()) {
-        String::Utf8Value key_str(key);
-        String::Utf8Value val_str(val);
+        NanUtf8String key_str(key);
+        NanUtf8String val_str(val);
         av_dict_set(&options, *key_str, *val_str, 0);
       }
     }
   }
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int ret = avformat_write_header(ref, &options);
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  ::AVDictionaryEntry *t = nullptr;
+  int ret = avformat_write_header(wrap, &options);
+
+  ::AVDictionaryEntry* t = nullptr;
   if ((t = av_dict_get(options, "", nullptr, AV_DICT_IGNORE_SUFFIX))) {
-      av_log(nullptr, AV_LOG_ERROR, "Option %s not found.\n", t->key);
-      ret = AVERROR_OPTION_NOT_FOUND;
+    av_log(nullptr, AV_LOG_ERROR, "Option %s not found.\n", t->key);
+    ret = AVERROR_OPTION_NOT_FOUND;
   }
   av_dict_free(&options);
 
-  NanReturnValue(NanNew<Integer>(ret));
+  NanReturnValue(NanNew<Int32>(ret));
 }
-*/
+
 NAN_METHOD(AVFormatContext::WriteFrame) {
-  NanEscapableScope();
+  NanScope();
 
   if (!avcodec::AVPacket::HasInstance(args[0]))
-    return NanThrowTypeError("writeFrame: AVPacket instance expected");
+    return NanThrowTypeError("writeFrame: AVPacket instance required");
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ::AVPacket *pkt = Unwrap<avcodec::AVPacket>(args[0]->ToObject())->This();
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  int ret = av_write_frame(ref, pkt);
-
-  NanReturnValue(NanNew<Integer>(ret));
+  ::AVPacket* pkt = Unwrap<avcodec::AVPacket>(args[0]->ToObject())->This();
+  int ret = av_write_frame(wrap, pkt);
+  NanReturnValue(NanNew<Int32>(ret));
 }
 
 NAN_METHOD(AVFormatContext::WriteInterleavedFrame) {
-  NanEscapableScope();
+  NanScope();
 
   if (!avcodec::AVPacket::HasInstance(args[0]))
-    return NanThrowTypeError("writeInterleavedFrame: AVPacket instance expected");
+    return NanThrowTypeError("writeInterleavedFrame: AVPacket instance required");
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ::AVPacket *pkt = Unwrap<avcodec::AVPacket>(args[0]->ToObject())->This();
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  int ret = av_interleaved_write_frame(ref, pkt);
-
-  NanReturnValue(NanNew<Integer>(ret));
+  ::AVPacket* pkt = Unwrap<avcodec::AVPacket>(args[0]->ToObject())->This();
+  int ret = av_interleaved_write_frame(wrap, pkt);
+  NanReturnValue(NanNew<Int32>(ret));
 }
-/*
 
+NAN_METHOD(AVFormatContext::WriteUncodedFrame) {
+  NanScope();
 
+  if (!args[0]->IsNumber())
+    return NanThrowTypeError("writeUncodedFrame: stream_index integer required");
+  if (!avutil::AVFrame::HasInstance(args[1]))
+    return NanThrowTypeError("writeUncodedFrame: AVFrame instance required");
 
- */
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  int stream_index = args[0]->Int32Value();
+  ::AVFrame* frame = Unwrap<avutil::AVFrame>(args[1]->ToObject())->This();
+
+  int ret = av_write_uncoded_frame(wrap, stream_index, frame);
+  NanReturnValue(NanNew<Int32>(ret));
+}
+
+NAN_METHOD(AVFormatContext::WriteInterleavedUncodedFrame) {
+  NanScope();
+
+  if (!args[0]->IsNumber())
+    return NanThrowTypeError("writeInterleavedUncodedFrame: stream_index integer required");
+  if (!avutil::AVFrame::HasInstance(args[1]))
+    return NanThrowTypeError("writeInterleavedUncodedFrame: AVFrame instance required");
+
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  int stream_index = args[0]->Int32Value();
+  ::AVFrame* frame = Unwrap<avutil::AVFrame>(args[1]->ToObject())->This();
+
+  int ret = av_interleaved_write_uncoded_frame(wrap, stream_index, frame);
+  NanReturnValue(NanNew<Int32>(ret));
+}
+
+NAN_METHOD(AVFormatContext::WriteUncodedFrameQuery) {
+  NanScope();
+
+  if (!args[0]->IsNumber())
+    return NanThrowTypeError("writeUncodedFrameQuery: stream_index integer required");
+
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  int stream_index = args[0]->Int32Value();
+  int ret = av_write_uncoded_frame_query(wrap, stream_index);
+  NanReturnValue(NanNew<Int32>(ret));
+}
+
 NAN_METHOD(AVFormatContext::WriteTrailer) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int ret = av_write_trailer(ref);
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(ret));
+  int ret = av_write_trailer(wrap);
+  NanReturnValue(NanNew<Int32>(ret));
+}
+
+NAN_METHOD(AVFormatContext::GetOutputTimestamp) {
+  NanScope();
+
+  if (!args[0]->IsNumber())
+    return NanThrowTypeError("getOutputTimestamp: stream integer required");
+
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  int stream = args[0]->Int32Value();
+  int64_t dts;
+  int64_t wall;
+
+  int ret = av_get_output_timestamp(wrap, stream, &dts, &wall);
+  if (ret == 0) {
+    Local<Object> rets = NanNew<Object>();
+    rets->Set(NanNew("dts"), NanNew<Number>(dts));
+    rets->Set(NanNew("wall"), NanNew<Number>(wall));
+    NanReturnValue(rets);
+  } else
+    NanReturnValue(NanNew<Int32>(ret));
+}
+
+NAN_METHOD(AVFormatContext::FindDefaultStreamIndex) {
+  NanScope();
+
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  int ret = av_find_default_stream_index(wrap);
+  NanReturnValue(NanNew<Int32>(ret));
 }
 
 NAN_METHOD(AVFormatContext::DumpFormat) {
-  NanEscapableScope();
+  NanScope();
 
   if (!args[0]->IsNumber())
     return NanThrowTypeError("dumpFormat: index integer required");
@@ -519,142 +762,188 @@ NAN_METHOD(AVFormatContext::DumpFormat) {
   if (!args[2]->IsNumber())
     return NanThrowTypeError("dumpFormat: is_output integer required");
 
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
   int index = args[0]->Int32Value();
-  String::Utf8Value url(args[1]);
+  NanUtf8String url(args[1]);
   int is_output = args[2]->Int32Value();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  if ((!is_output && ref->iformat) || (is_output && ref->oformat))
-    av_dump_format(ref, index, *url, is_output);
-
+  if ((!is_output && wrap->iformat) || (is_output && wrap->oformat))
+    av_dump_format(wrap, index, *url, is_output);
   NanReturnUndefined();
 }
-/*
-NAN_METHOD(AVFormatContext::GuessSampleAspectRatio) {
-  NanEscapableScope();
 
-  ::AVStream *stream = nullptr;
-  ::AVFrame *frame = nullptr;
+NAN_METHOD(AVFormatContext::GuessSampleAspectRatio) {
+  NanScope();
+
+  if (!AVStream::HasInstance(args[0]) && !avutil::AVFrame::HasInstance(args[0]))
+    return NanThrowTypeError("guessSampleAspectRatio: AVStream instance required");
+  if (!AVStream::HasInstance(args[0]) && !avutil::AVFrame::HasInstance(args[0]) &&
+      !avutil::AVFrame::HasInstance(args[1]))
+    return NanThrowTypeError("guessSampleAspectRatio: AVFrame instance required");
+
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  ::AVStream* stream = nullptr;
+  ::AVFrame* frame = nullptr;
   int argc = 0;
 
-  if (!args[argc]->IsUndefined() && args[argc]->IsObject()) {
-    Local<Object> arg0 = args[argc]->ToObject();
-    if (AVStream::HasInstance(arg0)) {
-      stream = Unwrap<AVStream>(arg0)->This();
-      argc++;
-    }
-  }
+  if (AVStream::HasInstance(args[argc]))
+    stream = Unwrap<AVStream>(args[argc++]->ToObject())->This();
+  if (avutil::AVFrame::HasInstance(args[argc]))
+    frame = Unwrap<avutil::AVFrame>(args[argc++]->ToObject())->This();
 
-  if (!args[argc]->IsUndefined() && args[argc]->IsObject()) {
-    Local<Object> arg1 = args[argc]->ToObject();
-    if (AVUtil::AVFrame::HasInstance(arg1)) {
-      frame = Unwrap<AVUtil::AVFrame>(arg1)->This();
-      argc++;
-    }
-  }
-
-  if (argc != args.Length())
-    return NanThrowTypeError("invalid arguments");
-
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ::AVRational sample_aspect_ratio =
-    av_guess_sample_aspect_ratio(ref, stream, frame);
+  ::AVRational sar = av_guess_sample_aspect_ratio(wrap, stream, frame);
 
   Local<Object> ret = NanNew<Object>();
-  ret->Set(NanNew<String>("num"), NanNew<Integer>(sample_aspect_ratio.num));
-  ret->Set(NanNew<String>("den"), NanNew<Integer>(sample_aspect_ratio.den));
-
+  ret->Set(NanNew("num"), NanNew<Int32>(sar.num));
+  ret->Set(NanNew("den"), NanNew<Int32>(sar.den));
   NanReturnValue(ret);
 }
 
 NAN_METHOD(AVFormatContext::GuessFrameRate) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVStream *stream = nullptr;
-  ::AVFrame *frame = nullptr;
-  int argc = 0;
+  if (!AVStream::HasInstance(args[0]))
+    return NanThrowTypeError("guessFrameRate: AVStream instance required");
+  if (!args[1]->IsUndefined() && !avutil::AVFrame::HasInstance(args[1]))
+    return NanThrowTypeError("guessFrameRate: AVFrame instance required");
 
-  if (!args[argc]->IsUndefined() && args[argc]->IsObject()) {
-    Local<Object> arg0 = args[argc]->ToObject();
-    if (AVStream::HasInstance(arg0)) {
-      stream = Unwrap<AVStream>(arg0)->This();
-      argc++;
-    }
-  }
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  if (!args[argc]->IsUndefined() && args[argc]->IsObject()) {
-    Local<Object> arg1 = args[argc]->ToObject();
-    if (AVUtil::AVFrame::HasInstance(arg1)) {
-      frame = Unwrap<AVUtil::AVFrame>(arg1)->This();
-      argc++;
-    }
-  }
+  ::AVStream* stream = Unwrap<AVStream>(args[0]->ToObject())->This();
+  ::AVFrame* frame = nullptr;
+  if (avutil::AVFrame::HasInstance(args[1]))
+    frame = Unwrap<avutil::AVFrame>(args[1]->ToObject())->This();
 
-  if (argc != args.Length())
-    return NanThrowTypeError("invalid arguments");
-
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ::AVRational frame_rate = av_guess_frame_rate(ref, stream, frame);
+  ::AVRational frame_rate = av_guess_frame_rate(wrap, stream, frame);
 
   Local<Object> ret = NanNew<Object>();
-  ret->Set(NanNew<String>("num"), NanNew<Integer>(frame_rate.num));
-  ret->Set(NanNew<String>("den"), NanNew<Integer>(frame_rate.den));
-
+  ret->Set(NanNew("num"), NanNew<Int32>(frame_rate.num));
+  ret->Set(NanNew("den"), NanNew<Int32>(frame_rate.den));
   NanReturnValue(ret);
+}
+
+NAN_METHOD(AVFormatContext::MatchStreamSpecifier) {
+  NanScope();
+
+  if (!AVStream::HasInstance(args[0]))
+    return NanThrowTypeError("matchStreamSpecifier: AVStream instance required");
+  if (!args[1]->IsString())
+    return NanThrowTypeError("matchStreamSpecifier: spec string required");
+
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  ::AVStream* stream = Unwrap<AVStream>(args[0]->ToObject())->This();
+  NanUtf8String spec(args[1]);
+
+  int ret = avformat_match_stream_specifier(wrap, stream, *spec);
+  NanReturnValue(NanNew<Int32>(ret));
+}
+
+NAN_METHOD(AVFormatContext::QueueAttachedPictures) {
+  NanScope();
+
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  int ret = avformat_queue_attached_pictures(wrap);
+  NanReturnValue(NanNew<Int32>(ret));
+}
+
+NAN_METHOD(AVFormatContext::InjectGlobalSideData) {
+  NanScope();
+
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap)
+    av_format_inject_global_side_data(wrap);
+  NanReturnUndefined();
 }
 
 NAN_GETTER(AVFormatContext::GetIFormat) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  if (!ref->iformat)
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  if (wrap->iformat != nullptr)
+    NanReturnValue(AVInputFormat::NewInstance(wrap->iformat));
+  else
     NanReturnNull();
-  Local<Value> ret = AVInputFormat::newInstance(ref->iformat);
-
-  NanReturnValue(ret);
 }
 
 NAN_GETTER(AVFormatContext::GetOFormat) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  if (!ref->oformat)
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  if (wrap->oformat != nullptr)
+    NanReturnValue(AVOutputFormat::NewInstance(wrap->oformat));
+  else
     NanReturnNull();
-
-  Local<Value> ret = AVOutputFormat::NewInstance(ref->oformat);
-  NanReturnValue(ret);
 }
-*/
+
+NAN_SETTER(AVFormatContext::SetOFormat) {
+  NanScope();
+
+  if (!AVOutputFormat::HasInstance(value))
+    NanThrowTypeError("oformat: AVOutputFormat instance required");
+
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+
+  if (wrap)
+    wrap->oformat = Unwrap<AVOutputFormat>(value->ToObject())->This();
+}
+
 NAN_GETTER(AVFormatContext::GetCtxFlags) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int ctx_flags = ref->ctx_flags;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(ctx_flags));
+  int ctx_flags = wrap->ctx_flags;
+  NanReturnValue(NanNew<Int32>(ctx_flags));
 }
-/*
-NAN_GETTER(AVFormatContext::GetStreams) {
-  NanEscapableScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  Local<Array> streams = NanNew<Array>(ref->nb_streams);
-  for (uint32_t i = 0; i < ref->nb_streams; i++) {
-    if (ref->streams[i]) {
-      Local<Value> v = AVStream::NewInstance(ref->streams[i]);
+NAN_GETTER(AVFormatContext::GetStreams) {
+  NanScope();
+
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  Local<Array> streams = NanNew<Array>(wrap->nb_streams);
+  for (uint32_t i = 0; i < wrap->nb_streams; i++) {
+    if (wrap->streams[i]) {
+      Local<Value> v = AVStream::NewInstance(wrap->streams[i]);
       streams->Set(i, v);
     }
   }
 
   NanReturnValue(streams);
 }
-*/
+
 NAN_GETTER(AVFormatContext::GetFilename) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  const char *filename = ref->filename;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  const char* filename = wrap->filename;
   if (filename)
     NanReturnValue(NanNew<String>(filename));
   else
@@ -667,63 +956,78 @@ NAN_SETTER(AVFormatContext::SetFilename) {
   if (!value->IsString())
     NanThrowTypeError("filename: string required");
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  String::Utf8Value filename(value);
-  av_strlcpy(ref->filename, *filename, sizeof(ref->filename));
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+
+  if (wrap) {
+    NanUtf8String filename(value);
+    av_strlcpy(wrap->filename, *filename, sizeof(wrap->filename));
+  }
 }
 
 NAN_GETTER(AVFormatContext::GetStartTime) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int64_t start_time = ref->start_time;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  int64_t start_time = wrap->start_time;
   NanReturnValue(NanNew<Number>(start_time));
 }
 
 NAN_GETTER(AVFormatContext::GetDuration) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int64_t duration = ref->duration;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  int64_t duration = wrap->duration;
   NanReturnValue(NanNew<Number>(duration));
 }
 
 NAN_GETTER(AVFormatContext::GetBitRate) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int bit_rate = ref->bit_rate;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(bit_rate));
+  int bit_rate = wrap->bit_rate;
+  NanReturnValue(NanNew<Int32>(bit_rate));
 }
 
 NAN_GETTER(AVFormatContext::GetPacketSize) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  unsigned int packet_size = ref->packet_size;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(packet_size));
+  unsigned int packet_size = wrap->packet_size;
+  NanReturnValue(NanNew<Uint32>(packet_size));
 }
 
 NAN_GETTER(AVFormatContext::GetMaxDelay) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int max_delay = ref->max_delay;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(max_delay));
+  int max_delay = wrap->max_delay;
+  NanReturnValue(NanNew<Int32>(max_delay));
 }
 
 NAN_GETTER(AVFormatContext::GetFlags) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int flags = ref->flags;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(flags));
+  int flags = wrap->flags;
+  NanReturnValue(NanNew<Int32>(flags));
 }
 
 NAN_SETTER(AVFormatContext::SetFlags) {
@@ -732,34 +1036,39 @@ NAN_SETTER(AVFormatContext::SetFlags) {
   if (!value->IsNumber())
     NanThrowTypeError("flags: integer required");
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ref->flags = value->Int32Value();
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+
+  if (wrap)
+    wrap->flags = value->Int32Value();
 }
 
-/*
 NAN_GETTER(AVFormatContext::GetPrograms) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  Local<Array> programs = NanNew<Array>(ref->nb_programs);
-  for (uint32_t i = 0; i < ref->nb_programs; i++) {
-    if (ref->programs[i]) {
-      Local<Value> v = AVProgram::NewInstance(ref->programs[i]);
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  Local<Array> programs = NanNew<Array>(wrap->nb_programs);
+  for (uint32_t i = 0; i < wrap->nb_programs; i++) {
+    if (wrap->programs[i]) {
+      Local<Value> v = AVProgram::NewInstance(wrap->programs[i]);
       programs->Set(i, v);
     }
   }
 
   NanReturnValue(programs);
 }
-*/
 
 NAN_GETTER(AVFormatContext::GetVideoCodecId) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  enum ::AVCodecID video_codec_id = ref->video_codec_id;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(video_codec_id));
+  enum ::AVCodecID video_codec_id = wrap->video_codec_id;
+  NanReturnValue(NanNew<Uint32>(video_codec_id));
 }
 
 NAN_SETTER(AVFormatContext::SetVideoCodecId) {
@@ -768,17 +1077,21 @@ NAN_SETTER(AVFormatContext::SetVideoCodecId) {
   if (!value->IsNumber())
     NanThrowTypeError("video_codec_id: enum required");
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ref->video_codec_id = static_cast<enum ::AVCodecID>(value->Int32Value());
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+
+  if (wrap)
+    wrap->video_codec_id = static_cast<enum ::AVCodecID>(value->Uint32Value());
 }
 
 NAN_GETTER(AVFormatContext::GetAudioCodecId) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  enum ::AVCodecID audio_codec_id = ref->audio_codec_id;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(audio_codec_id));
+  enum ::AVCodecID audio_codec_id = wrap->audio_codec_id;
+  NanReturnValue(NanNew<Uint32>(audio_codec_id));
 }
 
 NAN_SETTER(AVFormatContext::SetAudioCodecId) {
@@ -787,17 +1100,21 @@ NAN_SETTER(AVFormatContext::SetAudioCodecId) {
   if (!value->IsNumber())
     NanThrowTypeError("audio_codec_id: enum required");
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ref->audio_codec_id = static_cast<enum ::AVCodecID>(value->Int32Value());
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+
+  if (wrap)
+    wrap->audio_codec_id = static_cast<enum ::AVCodecID>(value->Uint32Value());
 }
 
 NAN_GETTER(AVFormatContext::GetSubtitleCodecId) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  enum ::AVCodecID subtitle_codec_id = ref->subtitle_codec_id;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(subtitle_codec_id));
+  enum ::AVCodecID subtitle_codec_id = wrap->subtitle_codec_id;
+  NanReturnValue(NanNew<Uint32>(subtitle_codec_id));
 }
 
 NAN_SETTER(AVFormatContext::SetSubtitleCodecId) {
@@ -806,17 +1123,22 @@ NAN_SETTER(AVFormatContext::SetSubtitleCodecId) {
   if (!value->IsNumber())
     NanThrowTypeError("subtitle_codec_id: enum required");
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ref->subtitle_codec_id = static_cast<enum ::AVCodecID>(value->Int32Value());
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+
+  if (wrap)
+    wrap->subtitle_codec_id =
+      static_cast<enum ::AVCodecID>(value->Uint32Value());
 }
 
 NAN_GETTER(AVFormatContext::GetMaxIndexSize) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  unsigned int max_index_size = ref->max_index_size;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(max_index_size));
+  unsigned int max_index_size = wrap->max_index_size;
+  NanReturnValue(NanNew<Uint32>(max_index_size));
 }
 
 NAN_SETTER(AVFormatContext::SetMaxIndexSize) {
@@ -825,55 +1147,64 @@ NAN_SETTER(AVFormatContext::SetMaxIndexSize) {
   if (!value->IsNumber())
     NanThrowTypeError("max_index_size: integer required");
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ref->max_index_size = value->Uint32Value();
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+
+  if (wrap)
+    wrap->max_index_size = value->Uint32Value();
 }
 
 NAN_GETTER(AVFormatContext::GetMaxPictureBuffer) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  unsigned int max_picture_buffer = ref->max_picture_buffer;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(max_picture_buffer));
+  unsigned int max_picture_buffer = wrap->max_picture_buffer;
+  NanReturnValue(NanNew<Uint32>(max_picture_buffer));
 }
 
-/*
 NAN_GETTER(AVFormatContext::GetChapters) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  Local<Array> chapters = NanNew<Array>(ref->nb_chapters);
-  for (uint32_t i = 0; i < ref->nb_chapters; i++) {
-    if (ref->chapters[i]) {
-      Local<Value> v = AVChapter::NewInstance(ref->chapters[i]);
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  Local<Array> chapters = NanNew<Array>(wrap->nb_chapters);
+  for (uint32_t i = 0; i < wrap->nb_chapters; i++) {
+    if (wrap->chapters[i]) {
+      Local<Value> v = AVChapter::NewInstance(wrap->chapters[i]);
       chapters->Set(i, v);
     }
   }
 
   NanReturnValue(chapters);
 }
-*/
 
 NAN_GETTER(AVFormatContext::GetMetadata) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
   Local<Object> ret = NanNew<Object>();
-  AVDictionary *metadata = ref->metadata;
-  AVDictionaryEntry *t = nullptr;
+  AVDictionary* metadata = wrap->metadata;
+  AVDictionaryEntry* t = nullptr;
   while ((t = av_dict_get(metadata, "", t, AV_DICT_IGNORE_SUFFIX)))
     ret->Set(NanNew<String>(t->key), NanNew<String>(t->value));
-
   NanReturnValue(ret);
 }
 
 NAN_GETTER(AVFormatContext::GetStartTimeRealtime) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int64_t start_time_realtime = ref->start_time_realtime;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  int64_t start_time_realtime = wrap->start_time_realtime;
   NanReturnValue(NanNew<Number>(start_time_realtime));
 }
 
@@ -883,17 +1214,21 @@ NAN_SETTER(AVFormatContext::SetStartTimeRealtime) {
   if (!value->IsNumber())
     NanThrowTypeError("start_time_realtime: integer required");
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ref->start_time_realtime = value->IntegerValue();
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+
+  if (wrap)
+    wrap->start_time_realtime = value->IntegerValue();
 }
 
 NAN_GETTER(AVFormatContext::GetFpsProbeSize) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int fps_probe_size = ref->fps_probe_size;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(fps_probe_size));
+  int fps_probe_size = wrap->fps_probe_size;
+  NanReturnValue(NanNew<Int32>(fps_probe_size));
 }
 
 NAN_SETTER(AVFormatContext::SetFpsProbeSize) {
@@ -902,17 +1237,21 @@ NAN_SETTER(AVFormatContext::SetFpsProbeSize) {
   if (!value->IsNumber())
     NanThrowTypeError("fps_probe_size: integer required");
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ref->fps_probe_size = value->Int32Value();
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+
+  if (wrap)
+    wrap->fps_probe_size = value->Int32Value();
 }
 
 NAN_GETTER(AVFormatContext::GetErrorRecognition) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int error_recognition = ref->error_recognition;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(error_recognition));
+  int error_recognition = wrap->error_recognition;
+  NanReturnValue(NanNew<Int32>(error_recognition));
 }
 
 NAN_SETTER(AVFormatContext::SetErrorRecognition) {
@@ -921,16 +1260,20 @@ NAN_SETTER(AVFormatContext::SetErrorRecognition) {
   if (!value->IsNumber())
     NanThrowTypeError("error_recognition: integer required");
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ref->error_recognition = value->Int32Value();
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+
+  if (wrap)
+    wrap->error_recognition = value->Int32Value();
 }
 
 NAN_GETTER(AVFormatContext::GetMaxInterleaveDelta) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int64_t max_interleave_delta = ref->max_interleave_delta;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  int64_t max_interleave_delta = wrap->max_interleave_delta;
   NanReturnValue(NanNew<Number>(max_interleave_delta));
 }
 
@@ -940,17 +1283,21 @@ NAN_SETTER(AVFormatContext::SetMaxInterleaveDelta) {
   if (!value->IsNumber())
     NanThrowTypeError("max_interleave_delta: integer required");
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ref->max_interleave_delta = value->IntegerValue();
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+
+  if (wrap)
+    wrap->max_interleave_delta = value->IntegerValue();
 }
 
 NAN_GETTER(AVFormatContext::GetStrictStdCompliance) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int strict_std_compliance = ref->strict_std_compliance;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(strict_std_compliance));
+  int strict_std_compliance = wrap->strict_std_compliance;
+  NanReturnValue(NanNew<Int32>(strict_std_compliance));
 }
 
 NAN_SETTER(AVFormatContext::SetStrictStdCompliance) {
@@ -959,17 +1306,21 @@ NAN_SETTER(AVFormatContext::SetStrictStdCompliance) {
   if (!value->IsNumber())
     NanThrowTypeError("strict_std_compliance: integer required");
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ref->strict_std_compliance = value->Int32Value();
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+
+  if (wrap)
+    wrap->strict_std_compliance = value->Int32Value();
 }
 
 NAN_GETTER(AVFormatContext::GetEventFlags) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int event_flags = ref->event_flags;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(event_flags));
+  int event_flags = wrap->event_flags;
+  NanReturnValue(NanNew<Int32>(event_flags));
 }
 
 NAN_SETTER(AVFormatContext::SetEventFlags) {
@@ -978,17 +1329,21 @@ NAN_SETTER(AVFormatContext::SetEventFlags) {
   if (!value->IsNumber())
     NanThrowTypeError("event_flags: integer required");
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ref->event_flags = value->Int32Value();
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+
+  if (wrap)
+    wrap->event_flags = value->Int32Value();
 }
 
 NAN_GETTER(AVFormatContext::GetMaxTsProbe) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int max_ts_probe = ref->max_ts_probe;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(max_ts_probe));
+  int max_ts_probe = wrap->max_ts_probe;
+  NanReturnValue(NanNew<Int32>(max_ts_probe));
 }
 
 NAN_SETTER(AVFormatContext::SetMaxTsProbe) {
@@ -997,17 +1352,21 @@ NAN_SETTER(AVFormatContext::SetMaxTsProbe) {
   if (!value->IsNumber())
     NanThrowTypeError("max_ts_probe: integer required");
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ref->max_ts_probe = value->Int32Value();
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+
+  if (wrap)
+    wrap->max_ts_probe = value->Int32Value();
 }
 
 NAN_GETTER(AVFormatContext::GetAvoidNegativeTs) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int avoid_negative_ts = ref->avoid_negative_ts;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(avoid_negative_ts));
+  int avoid_negative_ts = wrap->avoid_negative_ts;
+  NanReturnValue(NanNew<Int32>(avoid_negative_ts));
 }
 
 NAN_SETTER(AVFormatContext::SetAvoidNegativeTs) {
@@ -1016,125 +1375,153 @@ NAN_SETTER(AVFormatContext::SetAvoidNegativeTs) {
   if (!value->IsNumber())
     NanThrowTypeError("avoid_negative_ts: integer required");
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ref->avoid_negative_ts = value->Int32Value();
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+
+  if (wrap)
+    wrap->avoid_negative_ts = value->Int32Value();
 }
 
 NAN_GETTER(AVFormatContext::GetAudioPreload) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int audio_preload = ref->audio_preload;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(audio_preload));
+  int audio_preload = wrap->audio_preload;
+  NanReturnValue(NanNew<Int32>(audio_preload));
 }
 
 NAN_GETTER(AVFormatContext::GetMaxChunkDuration) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int max_chunk_duration = ref->max_chunk_duration;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(max_chunk_duration));
+  int max_chunk_duration = wrap->max_chunk_duration;
+  NanReturnValue(NanNew<Int32>(max_chunk_duration));
 }
 
 NAN_GETTER(AVFormatContext::GetMaxChunkSize) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int max_chunk_size = ref->max_chunk_size;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(max_chunk_size));
+  int max_chunk_size = wrap->max_chunk_size;
+  NanReturnValue(NanNew<Int32>(max_chunk_size));
 }
 
 NAN_GETTER(AVFormatContext::GetUseWallclockAsTimestamps) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int use_wallclock_as_timestamps = ref->use_wallclock_as_timestamps;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(use_wallclock_as_timestamps));
+  int use_wallclock_as_timestamps = wrap->use_wallclock_as_timestamps;
+  NanReturnValue(NanNew<Int32>(use_wallclock_as_timestamps));
 }
 
 NAN_GETTER(AVFormatContext::GetAvioFlags) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int avio_flags = ref->avio_flags;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(avio_flags));
+  int avio_flags = wrap->avio_flags;
+  NanReturnValue(NanNew<Int32>(avio_flags));
 }
 
 NAN_GETTER(AVFormatContext::GetDurationEstimationMethod) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
   enum ::AVDurationEstimationMethod duration_estimation_method =
-    ref->duration_estimation_method;
-
-  NanReturnValue(NanNew<Integer>(duration_estimation_method));
+    av_fmt_ctx_get_duration_estimation_method(wrap);
+  NanReturnValue(NanNew<Uint32>(duration_estimation_method));
 }
 
 NAN_GETTER(AVFormatContext::GetSkipInitialBytes) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int64_t skip_initial_bytes = ref->skip_initial_bytes;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  int64_t skip_initial_bytes = wrap->skip_initial_bytes;
   NanReturnValue(NanNew<Number>(skip_initial_bytes));
 }
 
 NAN_GETTER(AVFormatContext::GetCorrectTsOverflow) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  unsigned int correct_ts_overflow = ref->correct_ts_overflow;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(correct_ts_overflow));
+  unsigned int correct_ts_overflow = wrap->correct_ts_overflow;
+  NanReturnValue(NanNew<Uint32>(correct_ts_overflow));
 }
 
 NAN_GETTER(AVFormatContext::GetSeek2Any) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int seek2any = ref->seek2any;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(seek2any));
+  int seek2any = wrap->seek2any;
+  NanReturnValue(NanNew<Int32>(seek2any));
 }
 
 NAN_GETTER(AVFormatContext::GetFlushPackets) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int flush_packets = ref->flush_packets;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(flush_packets));
+  int flush_packets = wrap->flush_packets;
+  NanReturnValue(NanNew<Int32>(flush_packets));
 }
 
 NAN_GETTER(AVFormatContext::GetProbeScore) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int probe_score = ref->probe_score;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(probe_score));
+  int probe_score = av_format_get_probe_score(wrap);
+  NanReturnValue(NanNew<Int32>(probe_score));
 }
 
 NAN_GETTER(AVFormatContext::GetFormatProbesize) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int format_probesize = ref->format_probesize;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(format_probesize));
+  int format_probesize = wrap->format_probesize;
+  NanReturnValue(NanNew<Int32>(format_probesize));
 }
 
 NAN_GETTER(AVFormatContext::GetCodecWhitelist) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  char *codec_whitelist = ref->codec_whitelist;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  char* codec_whitelist = wrap->codec_whitelist;
   if (codec_whitelist)
     NanReturnValue(NanNew<String>(codec_whitelist));
   else
@@ -1142,175 +1529,229 @@ NAN_GETTER(AVFormatContext::GetCodecWhitelist) {
 }
 
 NAN_GETTER(AVFormatContext::GetFormatWhitelist) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  char *format_whitelist = ref->format_whitelist;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  char* format_whitelist = wrap->format_whitelist;
   if (format_whitelist)
     NanReturnValue(NanNew<String>(format_whitelist));
   else
     NanReturnEmptyString();
 }
 
-NAN_GETTER(AVFormatContext::GetDataOffset) {
-  NanEscapableScope();
-
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int64_t data_offset = ref->data_offset;
-
-  NanReturnValue(NanNew<Number>(data_offset));
-}
-
-NAN_GETTER(AVFormatContext::GetRawPacketBufferRemainingSize) {
-  NanEscapableScope();
-
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int raw_packet_buffer_remaining_size = ref->raw_packet_buffer_remaining_size;
-
-  NanReturnValue(NanNew<Integer>(raw_packet_buffer_remaining_size));
-}
-
-NAN_GETTER(AVFormatContext::GetOffset) {
-  NanEscapableScope();
-
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int64_t offset = ref->offset;
-
-  NanReturnValue(NanNew<Number>(offset));
-}
-
-NAN_GETTER(AVFormatContext::GetOffsetTimebase) {
-  NanEscapableScope();
-
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ::AVRational offset_timebase = ref->offset_timebase;
-
-  Local<Object> ret = NanNew<Object>();
-  ret->Set(NanNew<String>("num"), NanNew<Integer>(offset_timebase.num));
-  ret->Set(NanNew<String>("den"), NanNew<Integer>(offset_timebase.den));
-
-  NanReturnValue(ret);
-}
-
 NAN_GETTER(AVFormatContext::GetIoRepositioned) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int io_repositioned = ref->io_repositioned;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(io_repositioned));
+  int io_repositioned = wrap->io_repositioned;
+  NanReturnValue(NanNew<Int32>(io_repositioned));
 }
 
-/*
 NAN_GETTER(AVFormatContext::GetVideoCodec) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ::AVCodec *codec = av_format_get_video_codec(ref);
-  if (!codec)
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  ::AVCodec* codec = av_format_get_video_codec(wrap);
+  if (codec != nullptr)
+    NanReturnValue(avcodec::AVCodec::NewInstance(codec));
+  else
     NanReturnNull();
-  Local<Value> ret = AVCodec::AVCodec::NewInstance(codec);
-
-  NanReturnValue(ret);
 }
 
 NAN_SETTER(AVFormatContext::SetVideoCodec) {
-  NanEscapableScope();
+  NanScope();
 
-  if (!AVCodec::AVCodec::HasInstance(value))
-    return NanThrowTypeError("codec required");
+  if (!value->IsNull() && !avcodec::AVCodec::HasInstance(value))
+    return NanThrowTypeError("codec: AVCodec required");
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ::AVCodec *codec = Unwrap<AVCodec::AVCodec>(value->ToObject())->This();
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
 
-  av_format_set_video_codec(ref, codec);
+  if (wrap) {
+    ::AVCodec* codec = nullptr;
+    if (avcodec::AVCodec::HasInstance(value))
+      codec = Unwrap<avcodec::AVCodec>(value->ToObject())->This();
+    av_format_set_video_codec(wrap, codec);
+  }
 }
 
 NAN_GETTER(AVFormatContext::GetAudioCodec) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ::AVCodec *codec = av_format_get_audio_codec(ref);
-  if (!codec)
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  ::AVCodec* codec = av_format_get_audio_codec(wrap);
+  if (codec != nullptr)
+    NanReturnValue(avcodec::AVCodec::NewInstance(codec));
+  else
     NanReturnNull();
-  Local<Value> ret = AVCodec::AVCodec::NewInstance(codec);
-
-  NanReturnValue(ret);
 }
 
 NAN_SETTER(AVFormatContext::SetAudioCodec) {
-  NanEscapableScope();
+  NanScope();
 
-  if (!AVCodec::AVCodec::HasInstance(value))
-    return NanThrowTypeError("codec required");
+  if (!value->IsNull() && !avcodec::AVCodec::HasInstance(value))
+    return NanThrowTypeError("codec: AVCodec required");
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ::AVCodec *codec = Unwrap<AVCodec::AVCodec>(value->ToObject())->This();
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
 
-  av_format_set_audio_codec(ref, codec);
+  if (wrap) {
+    ::AVCodec* codec = nullptr;
+    if (avcodec::AVCodec::HasInstance(value))
+      codec = Unwrap<avcodec::AVCodec>(value->ToObject())->This();
+    av_format_set_audio_codec(wrap, codec);
+  }
 }
 
 NAN_GETTER(AVFormatContext::GetSubtitleCodec) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  ::AVCodec *codec = av_format_get_subtitle_codec(ref);
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  if (!codec)
+  ::AVCodec* codec = av_format_get_subtitle_codec(wrap);
+  if (codec != nullptr)
+    NanReturnValue(avcodec::AVCodec::NewInstance(codec));
+  else
     NanReturnNull();
-  Local<Value> ret = AVCodec::AVCodec::NewInstance(codec);
-
-  NanReturnValue(ret);
 }
-*/
+
+NAN_SETTER(AVFormatContext::SetSubtitleCodec) {
+  NanScope();
+
+  if (!value->IsNull() && !avcodec::AVCodec::HasInstance(value))
+    return NanThrowTypeError("codec: AVCodec required");
+
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+
+  if (wrap) {
+    ::AVCodec *codec = nullptr;
+    if (avcodec::AVCodec::HasInstance(value))
+      codec = Unwrap<avcodec::AVCodec>(value->ToObject())->This();
+    av_format_set_subtitle_codec(wrap, codec);
+  }
+}
+
+NAN_GETTER(AVFormatContext::GetDataCodec) {
+  NanScope();
+
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  ::AVCodec* codec = av_format_get_data_codec(wrap);
+  if (codec != nullptr)
+    NanReturnValue(avcodec::AVCodec::NewInstance(codec));
+  else
+    NanReturnNull();
+}
+
+NAN_SETTER(AVFormatContext::SetDataCodec) {
+  NanScope();
+
+  if (!value->IsNull() && !avcodec::AVCodec::HasInstance(value))
+    return NanThrowTypeError("codec: AVCodec required");
+
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+
+  if (wrap) {
+    ::AVCodec *codec = nullptr;
+    if (avcodec::AVCodec::HasInstance(value))
+      codec = Unwrap<avcodec::AVCodec>(value->ToObject())->This();
+    av_format_set_data_codec(wrap, codec);
+  }
+}
 
 NAN_GETTER(AVFormatContext::GetMetadataHeaderPadding) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int metadata_header_padding = ref->metadata_header_padding;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(metadata_header_padding));
+  int metadata_header_padding = wrap->metadata_header_padding;
+  NanReturnValue(NanNew<Int32>(metadata_header_padding));
 }
 
 NAN_GETTER(AVFormatContext::GetOutputTsOffset) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int64_t output_ts_offset = ref->output_ts_offset;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  int64_t output_ts_offset = wrap->output_ts_offset;
   NanReturnValue(NanNew<Number>(output_ts_offset));
 }
 
 NAN_GETTER(AVFormatContext::GetMaxAnalyzeDuration2) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int64_t max_analyze_duration2 = ref->max_analyze_duration2;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  int64_t max_analyze_duration2 = wrap->max_analyze_duration2;
   NanReturnValue(NanNew<Number>(max_analyze_duration2));
 }
 
 NAN_GETTER(AVFormatContext::GetProbesize2) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  int64_t probesize2 = ref->probesize2;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  int64_t probesize2 = wrap->probesize2;
   NanReturnValue(NanNew<Number>(probesize2));
 }
 
 NAN_GETTER(AVFormatContext::GetDumpSeparator) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVFormatContext *ref = Unwrap<AVFormatContext>(args.This())->This();
-  uint8_t *dump_separator = ref->dump_separator;
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  uint8_t* dump_separator = wrap->dump_separator;
   if (dump_separator)
     NanReturnValue(NanNew<String>(dump_separator));
   else
     NanReturnEmptyString();
+}
+
+NAN_GETTER(AVFormatContext::GetDataCodecId) {
+  NanScope();
+
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  enum ::AVCodecID data_codec_id = wrap->data_codec_id;
+  NanReturnValue(NanNew<Uint32>(data_codec_id));
+}
+
+NAN_SETTER(AVFormatContext::SetDataCodecId) {
+  NanScope();
+
+  if (!value->IsNumber())
+    NanThrowTypeError("subtitle_codec_id: enum required");
+
+  ::AVFormatContext* wrap = Unwrap<AVFormatContext>(args.This())->This();
+
+  if (wrap)
+    wrap->data_codec_id = static_cast<enum ::AVCodecID>(value->Uint32Value());
 }
 
 }  // namespace avformat

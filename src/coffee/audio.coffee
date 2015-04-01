@@ -1,10 +1,13 @@
 
-FFmpeg = require './ffmpeg'
+ffmpeg = require './ffmpeg'
+avcodec = ffmpeg.avcodec
+avutil = ffmpeg.avutil
+AVDiscard = avcodec.AVDiscard
 
 module.exports =
 class Audio
   constructor: (@format) ->
-    @frames = (new FFmpeg.AVFrame for i in [0...5])
+    @frames = (new avutil.AVFrame for i in [0...5])
 
     @options = @format.options
 
@@ -14,15 +17,14 @@ class Audio
 
   open: (stream) ->
     context = stream.codec
-    codec = FFmpeg.AVCodec.findDecoder(@options.audio_codec_name or context.codec_id)
+    codec = avcodec.findDecoder(@options.audio_codec_name or context.codec_id)
 
+    context.codec_id = codec.id
     context.lowres = Math.min @options.lowres, codec.max_lowres
-    context.workaround_bugs = @options.workaround_bugs
-    context.error_concealment = @options.error_concealment
 
-    context.flags |= FFmpeg.CODEC_FLAG_EMU_EDGE if context.lowres > 0
-    context.flags |= FFmpeg.CODEC_FLAG_EMU_EDGE if codec.capabilities & FFmpeg.CODEC_CAP_DR1
-    context.flags2 |= FFmpeg.CODEC_FLAG2_FAST if @options.fast
+    context.flags |= avcodec.CODEC_FLAG_EMU_EDGE if context.lowres > 0
+    context.flags |= avcodec.CODEC_FLAG_EMU_EDGE if codec.capabilities & avcodec.CODEC_CAP_DR1
+    context.flags2 |= avcodec.CODEC_FLAG2_FAST if @options.fast
 
     options = threads: 'auto', refcounted_frames: 1
     options.lowres = context.lowres if context.lowres > 0
@@ -31,10 +33,10 @@ class Audio
     @index = stream.index
     @stream = stream
     @context = stream.codec
-    @stream.discard = FFmpeg.AVDISCARD_DEFAULT
+    @stream.discard = AVDiscard.AVDISCARD_DEFAULT
 
   close: ->
-    @stream?.discard = FFmpeg.AVDISCARD_ALL
+    @stream?.discard = AVDiscard.AVDISCARD_ALL
     @context.close() if @context?.is_open
 
     @index = -1

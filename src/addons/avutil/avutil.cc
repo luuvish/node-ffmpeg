@@ -1,12 +1,57 @@
 #include "avutil/avutil.h"
+#include "avutil/channel_layout.h"
 #include "avutil/pixfmt.h"
+#include "avutil/samplefmt.h"
+#include "avutil/avframe.h"
 
 using namespace v8;
 
 namespace ffmpeg {
 namespace avutil {
 
-void AVUtil::Init(Handle<Object> exports) {
+NAN_METHOD(Version) {
+  NanScope();
+
+  unsigned ret = avutil_version();
+
+  NanReturnValue(NanNew<Uint32>(ret));
+}
+
+NAN_METHOD(Configuration) {
+  NanScope();
+
+  const char* ret = avutil_configuration();
+
+  if (ret)
+    NanReturnValue(NanNew<String>(ret));
+  else
+    NanReturnEmptyString();
+}
+
+NAN_METHOD(License) {
+  NanScope();
+
+  const char* ret = avutil_license();
+
+  if (ret)
+    NanReturnValue(NanNew<String>(ret));
+  else
+    NanReturnEmptyString();
+}
+
+NAN_METHOD(GetTimeBaseQ) {
+  NanScope();
+
+  AVRational time_base_q = av_get_time_base_q();
+
+  Local<Object> ret = NanNew<Object>();
+  ret->Set(NanNew("num"), NanNew<Int32>(time_base_q.num));
+  ret->Set(NanNew("den"), NanNew<Int32>(time_base_q.den));
+
+  NanReturnValue(ret);
+}
+
+void Init(Handle<Object> exports) {
   NanScope();
 
   Local<Object> obj = NanNew<Object>();
@@ -27,13 +72,15 @@ void AVUtil::Init(Handle<Object> exports) {
   NODE_DEFINE_CONSTANT(obj, AV_TIME_BASE);
 
   Local<Object> time_base_q = NanNew<Object>();
-  time_base_q->Set(NanNew("num"), NanNew<Integer>(1));
-  time_base_q->Set(NanNew("den"), NanNew<Integer>(AV_TIME_BASE));
+  time_base_q->Set(NanNew("num"), NanNew<Int32>(1));
+  time_base_q->Set(NanNew("den"), NanNew<Int32>(AV_TIME_BASE));
   obj->Set(NanNew("AV_TIME_BASE_Q"), time_base_q);
 
   AVPictureType::Init(obj);
 
   NODE_SET_METHOD(obj, "getTimeBaseQ", GetTimeBaseQ);
+
+  ChannelLayout::Init(obj);
 
   AVPixelFormat::Init(obj);
   AVColorPrimaries::Init(obj);
@@ -42,49 +89,10 @@ void AVUtil::Init(Handle<Object> exports) {
   AVColorRange::Init(obj);
   AVChromaLocation::Init(obj);
 
+  AVSampleFormat::Init(obj);
+  AVFrame::Init(obj);
+
   exports->Set(NanNew("avutil"), obj);
-}
-
-NAN_METHOD(AVUtil::Version) {
-  NanEscapableScope();
-
-  unsigned ret = avutil_version();
-
-  NanReturnValue(NanNew<Integer>(ret));
-}
-
-NAN_METHOD(AVUtil::Configuration) {
-  NanEscapableScope();
-
-  const char *ret = avutil_configuration();
-
-  if (ret)
-    NanReturnValue(NanNew<String>(ret));
-  else
-    NanReturnEmptyString();
-}
-
-NAN_METHOD(AVUtil::License) {
-  NanEscapableScope();
-
-  const char *ret = avutil_license();
-
-  if (ret)
-    NanReturnValue(NanNew<String>(ret));
-  else
-    NanReturnEmptyString();
-}
-
-NAN_METHOD(AVUtil::GetTimeBaseQ) {
-  NanEscapableScope();
-
-  AVRational time_base_q = av_get_time_base_q();
-
-  Local<Object> ret = NanNew<Object>();
-  ret->Set(NanNew("num"), NanNew<Integer>(time_base_q.num));
-  ret->Set(NanNew("den"), NanNew<Integer>(time_base_q.den));
-
-  NanReturnValue(ret);
 }
 
 void AVMediaType::Init(Handle<Object> exports) {
@@ -105,15 +113,15 @@ void AVMediaType::Init(Handle<Object> exports) {
 }
 
 NAN_METHOD(AVMediaType::GetMediaTypeString) {
-  NanEscapableScope();
+  NanScope();
 
   if (!args[0]->IsNumber())
     return NanThrowTypeError("getMediaTypeString: media_type enum required");
 
   enum ::AVMediaType media_type =
-    static_cast<enum ::AVMediaType>(args[0]->Uint32Value());
+    static_cast<enum ::AVMediaType>(args[0]->Int32Value());
 
-  const char *ret = av_get_media_type_string(media_type);
+  const char* ret = av_get_media_type_string(media_type);
 
   if (ret)
     NanReturnValue(NanNew<String>(ret));
@@ -141,7 +149,7 @@ void AVPictureType::Init(Handle<Object> exports) {
 }
 
 NAN_METHOD(AVPictureType::GetPictureTypeChar) {
-  NanEscapableScope();
+  NanScope();
 
   if (!args[0]->IsNumber())
     return NanThrowTypeError("getPictureTypeChar: pict_type enum required");

@@ -28,6 +28,8 @@ class AVColorTransferCharacteristic {
 class AVColorSpace {
  public:
   static void Init(v8::Handle<v8::Object> exports);
+ private:
+  static NAN_METHOD(GetColorspaceName);
 };
 
 class AVColorRange {

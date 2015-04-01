@@ -1,5 +1,4 @@
 #include "avformat/avinputformat.h"
-#include "avutil/avutil.h"
 
 using namespace v8;
 
@@ -8,19 +7,6 @@ namespace avformat {
 
 Persistent<FunctionTemplate> AVInputFormat::constructor;
 
-AVInputFormat::AVInputFormat(::AVInputFormat *ref) : this_(ref), alloc_(false) {
-  if (this_ == nullptr) {
-    this_ = (::AVInputFormat *)av_mallocz(sizeof(::AVInputFormat));
-    alloc_ = true;
-  }
-}
-
-AVInputFormat::~AVInputFormat() {
-  if (this_ != nullptr && alloc_ == true) {
-    av_freep(&this_);
-  }
-}
-
 void AVInputFormat::Init(Handle<Object> exports) {
   NanScope();
 
@@ -28,26 +14,29 @@ void AVInputFormat::Init(Handle<Object> exports) {
   tpl->SetClassName(NanNew("AVInputFormat"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-  tpl->InstanceTemplate()->SetAccessor(NanNew("name"), GetName);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("long_name"), GetLongName);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("flags"), GetFlags, SetFlags);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("extensions"), GetExtensions);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("mime_type"), GetMimeType);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("raw_codec_id"), GetRawCodecId);
+  Local<ObjectTemplate> inst = tpl->InstanceTemplate();
+
+  inst->SetAccessor(NanNew("name"), GetName);
+  inst->SetAccessor(NanNew("long_name"), GetLongName);
+  inst->SetAccessor(NanNew("flags"), GetFlags, SetFlags);
+  inst->SetAccessor(NanNew("extensions"), GetExtensions);
+  inst->SetAccessor(NanNew("mime_type"), GetMimeType);
+  inst->SetAccessor(NanNew("raw_codec_id"), GetRawCodecId);
 
   NODE_SET_METHOD(tpl->GetFunction(), "findInputFormat", FindInputFormat);
 
   NanAssignPersistent(constructor, tpl);
-  exports->Set(NanNew("AVInputFormat"), tpl->GetFunction());
+
+  NODE_SET_METHOD(exports, "iformats", GetIFormats);
+  NODE_SET_METHOD(exports, "findInputFormat", FindInputFormat);
 }
 
-Local<Object> AVInputFormat::NewInstance(Local<Value> arg) {
+Local<Object> AVInputFormat::NewInstance(::AVInputFormat* wrap) {
   NanEscapableScope();
 
-  const int argc = 1;
-  Local<Value> argv[argc] = { arg };
-  Local<Function> ctor = constructor->GetFunction();
-  Local<Object> instance = ctor->NewInstance(argc, argv);
+  Local<Function> cons = NanNew(constructor)->GetFunction();
+  Local<Object> instance = cons->NewInstance(0, nullptr);
+  ObjectWrap::Unwrap<AVInputFormat>(instance)->This(wrap);
 
   return NanEscapeScope(instance);
 }
@@ -58,45 +47,67 @@ bool AVInputFormat::HasInstance(Handle<Value> value) {
   return NanHasInstance(constructor, obj);
 }
 
-NAN_METHOD(AVInputFormat::New) {
-  NanEscapableScope();
-
-  if (args.IsConstructCall()) {
-    ::AVInputFormat *ref = nullptr;
-    if (args[0]->IsExternal())
-      ref = static_cast<::AVInputFormat *>(External::Unwrap(args[0]));
-    AVInputFormat *obj = new AVInputFormat(ref);
-    obj->Wrap(args.This());
-    NanReturnValue(args.This());
-  } else {
-    const int argc = 1;
-    Local<Value> argv[argc] = { args[0] };
-    Local<Function> ctor = constructor->GetFunction();
-    NanReturnValue(ctor->NewInstance(argc, argv));
-  }
+::AVInputFormat* AVInputFormat::This(::AVInputFormat* wrap) {
+  if (wrap != nullptr) this_ = wrap;
+  return this_;
 }
 
-NAN_METHOD(AVInputFormat::FindInputFormat) {
-  NanEscapableScope();
+NAN_METHOD(AVInputFormat::GetIFormats) {
+  NanScope();
 
-  if (!args[0]->IsString())
-    return NanThrowTypeError("findInputFormat: short_name string required");
+  ::AVInputFormat* fmt = nullptr;
+  int size = 0;
 
-  String::Utf8Value short_name(args[0]);
-  ::AVInputFormat *ref = av_find_input_format(*short_name);
+  while ((fmt = av_iformat_next(fmt))) size++;
 
-  if (ref)
-    NanReturnValue(NewInstance(NanNew<External>(ref)));
+  Local<Array> ret = NanNew<Array>(size);
+  fmt = nullptr;
+  for (int i = 0; i < size; i++) {
+    fmt = av_iformat_next(fmt);
+    ret->Set(i, NewInstance(fmt));
+  }
+
+  if (size > 0)
+    NanReturnValue(ret);
   else
     NanReturnNull();
 }
 
+NAN_METHOD(AVInputFormat::FindInputFormat) {
+  NanScope();
+
+  if (!args[0]->IsString())
+    return NanThrowTypeError("findInputFormat: short_name string required");
+
+  NanUtf8String short_name(args[0]);
+  ::AVInputFormat* wrap = av_find_input_format(*short_name);
+
+  if (wrap)
+    NanReturnValue(NewInstance(wrap));
+  else
+    NanReturnNull();
+}
+
+NAN_METHOD(AVInputFormat::New) {
+  NanScope();
+
+  if (args.IsConstructCall()) {
+    AVInputFormat* obj = new AVInputFormat();
+    obj->Wrap(args.This());
+    NanReturnValue(args.This());
+  } else {
+    NanReturnUndefined();
+  }
+}
+
 NAN_GETTER(AVInputFormat::GetName) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVInputFormat *ref = Unwrap<AVInputFormat>(args.This())->This();
-  const char *name = ref->name;
+  ::AVInputFormat* wrap = Unwrap<AVInputFormat>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  const char* name = wrap->name;
   if (name)
     NanReturnValue(NanNew<String>(name));
   else
@@ -104,11 +115,13 @@ NAN_GETTER(AVInputFormat::GetName) {
 }
 
 NAN_GETTER(AVInputFormat::GetLongName) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVInputFormat *ref = Unwrap<AVInputFormat>(args.This())->This();
-  const char *long_name = ref->long_name;
+  ::AVInputFormat* wrap = Unwrap<AVInputFormat>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  const char* long_name = wrap->long_name;
   if (long_name)
     NanReturnValue(NanNew<String>(long_name));
   else
@@ -116,27 +129,33 @@ NAN_GETTER(AVInputFormat::GetLongName) {
 }
 
 NAN_GETTER(AVInputFormat::GetFlags) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVInputFormat *ref = Unwrap<AVInputFormat>(args.This())->This();
-  int flags = ref->flags;
+  ::AVInputFormat* wrap = Unwrap<AVInputFormat>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(flags));
+  int flags = wrap->flags;
+  NanReturnValue(NanNew<Int32>(flags));
 }
 
 NAN_SETTER(AVInputFormat::SetFlags) {
   NanScope();
 
-  ::AVInputFormat *ref = Unwrap<AVInputFormat>(args.This())->This();
-  ref->flags = value->Int32Value();
+  ::AVInputFormat* wrap = Unwrap<AVInputFormat>(args.This())->This();
+
+  if (wrap)
+    wrap->flags = value->Int32Value();
 }
 
 NAN_GETTER(AVInputFormat::GetExtensions) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVInputFormat *ref = Unwrap<AVInputFormat>(args.This())->This();
-  const char *extensions = ref->extensions;
+  ::AVInputFormat* wrap = Unwrap<AVInputFormat>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  const char* extensions = wrap->extensions;
   if (extensions)
     NanReturnValue(NanNew<String>(extensions));
   else
@@ -144,11 +163,13 @@ NAN_GETTER(AVInputFormat::GetExtensions) {
 }
 
 NAN_GETTER(AVInputFormat::GetMimeType) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVInputFormat *ref = Unwrap<AVInputFormat>(args.This())->This();
-  const char *mime_type = ref->mime_type;
+  ::AVInputFormat* wrap = Unwrap<AVInputFormat>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  const char* mime_type = wrap->mime_type;
   if (mime_type)
     NanReturnValue(NanNew<String>(mime_type));
   else
@@ -156,12 +177,14 @@ NAN_GETTER(AVInputFormat::GetMimeType) {
 }
 
 NAN_GETTER(AVInputFormat::GetRawCodecId) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVInputFormat *ref = Unwrap<AVInputFormat>(args.This())->This();
-  int raw_codec_id = ref->raw_codec_id;
+  ::AVInputFormat* wrap = Unwrap<AVInputFormat>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(raw_codec_id));
+  int raw_codec_id = wrap->raw_codec_id;
+  NanReturnValue(NanNew<Int32>(raw_codec_id));
 }
 
 }  // namespace avformat

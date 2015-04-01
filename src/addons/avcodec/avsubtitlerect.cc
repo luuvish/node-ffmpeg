@@ -1,6 +1,5 @@
-#include "avutil/avutil.h"
-#include "avcodec/avpicture.h"
 #include "avcodec/avsubtitlerect.h"
+#include "avcodec/avpicture.h"
 
 using namespace v8;
 
@@ -9,20 +8,6 @@ namespace avcodec {
 
 Persistent<FunctionTemplate> AVSubtitleRect::constructor;
 
-AVSubtitleRect::AVSubtitleRect(::AVSubtitleRect *ref)
-  : this_(ref), alloc_(false) {
-  if (this_ == nullptr) {
-    this_ = (::AVSubtitleRect *)av_mallocz(sizeof(::AVSubtitleRect));
-    alloc_ = true;
-  }
-}
-
-AVSubtitleRect::~AVSubtitleRect() {
-  if (this_ != nullptr && alloc_ == true) {
-    av_freep(&this_);
-  }
-}
-
 void AVSubtitleRect::Init(Handle<Object> exports) {
   NanScope();
 
@@ -30,27 +15,28 @@ void AVSubtitleRect::Init(Handle<Object> exports) {
   tpl->SetClassName(NanNew("AVSubtitleRect"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-  tpl->InstanceTemplate()->SetAccessor(NanNew("x"), GetX);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("y"), GetY);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("w"), GetW);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("h"), GetH);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("nb_colors"), GetNbColors);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("pict"), GetPict);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("type"), GetType);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("text"), GetText);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("ass"), GetAss);
+  Local<ObjectTemplate> inst = tpl->InstanceTemplate();
+
+  inst->SetAccessor(NanNew("x"), GetX);
+  inst->SetAccessor(NanNew("y"), GetY);
+  inst->SetAccessor(NanNew("w"), GetW);
+  inst->SetAccessor(NanNew("h"), GetH);
+  inst->SetAccessor(NanNew("nb_colors"), GetNbColors);
+  inst->SetAccessor(NanNew("pict"), GetPict);
+  inst->SetAccessor(NanNew("type"), GetType);
+  inst->SetAccessor(NanNew("text"), GetText);
+  inst->SetAccessor(NanNew("ass"), GetAss);
+  inst->SetAccessor(NanNew("flags"), GetFlags);
 
   NanAssignPersistent(constructor, tpl);
-  exports->Set(NanNew("AVSubtitleRect"), tpl->GetFunction());
 }
 
-Local<Object> AVSubtitleRect::NewInstance(Local<Value> arg) {
+Local<Object> AVSubtitleRect::NewInstance(::AVSubtitleRect* wrap) {
   NanEscapableScope();
 
-  const int argc = 1;
-  Local<Value> argv[argc] = { arg };
-  Local<Function> ctor = constructor->GetFunction();
-  Local<Object> instance = ctor->NewInstance(argc, argv);
+  Local<Function> cons = NanNew(constructor)->GetFunction();
+  Local<Object> instance = cons->NewInstance(0, nullptr);
+  ObjectWrap::Unwrap<AVSubtitleRect>(instance)->This(wrap);
 
   return NanEscapeScope(instance);
 }
@@ -61,109 +47,137 @@ bool AVSubtitleRect::HasInstance(Handle<Value> value) {
   return NanHasInstance(constructor, obj);
 }
 
+::AVSubtitleRect* AVSubtitleRect::This(::AVSubtitleRect* wrap) {
+  if (wrap != nullptr) this_ = wrap;
+  return this_;
+}
+
 NAN_METHOD(AVSubtitleRect::New) {
   NanScope();
 
   if (args.IsConstructCall()) {
-    ::AVSubtitleRect *ref = nullptr;
-    if (args[0]->IsExternal())
-      ref = static_cast<::AVSubtitleRect *>(External::Unwrap(args[0]));
-    AVSubtitleRect *obj = new AVSubtitleRect(ref);
+    AVSubtitleRect* obj = new AVSubtitleRect();
     obj->Wrap(args.This());
     NanReturnValue(args.This());
   } else {
-    const int argc = 1;
-    Local<Value> argv[argc] = { args[0] };
-    Local<Function> ctor = constructor->GetFunction();
-    NanReturnValue(ctor->NewInstance(argc, argv));
+    NanReturnUndefined();
   }
 }
 
-NAN_PROPERTY_GETTER(AVSubtitleRect::GetX) {
+NAN_GETTER(AVSubtitleRect::GetX) {
   NanScope();
 
-  AVSubtitleRect *obj = ObjectWrap::Unwrap<AVSubtitleRect>(args.This());
-  ::AVSubtitleRect *ref = obj->This();
+  ::AVSubtitleRect* wrap = Unwrap<AVSubtitleRect>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Number>(ref->x));
+  int x = wrap->x;
+  NanReturnValue(NanNew<Int32>(x));
 }
 
-NAN_PROPERTY_GETTER(AVSubtitleRect::GetY) {
+NAN_GETTER(AVSubtitleRect::GetY) {
   NanScope();
 
-  AVSubtitleRect *obj = ObjectWrap::Unwrap<AVSubtitleRect>(args.This());
-  ::AVSubtitleRect *ref = obj->This();
+  ::AVSubtitleRect* wrap = Unwrap<AVSubtitleRect>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Number>(ref->y));
+  int y = wrap->y;
+  NanReturnValue(NanNew<Int32>(y));
 }
 
-NAN_PROPERTY_GETTER(AVSubtitleRect::GetW) {
+NAN_GETTER(AVSubtitleRect::GetW) {
   NanScope();
 
-  AVSubtitleRect *obj = ObjectWrap::Unwrap<AVSubtitleRect>(args.This());
-  ::AVSubtitleRect *ref = obj->This();
+  ::AVSubtitleRect* wrap = Unwrap<AVSubtitleRect>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Number>(ref->w));
+  int w = wrap->w;
+  NanReturnValue(NanNew<Int32>(w));
 }
 
-NAN_PROPERTY_GETTER(AVSubtitleRect::GetH) {
+NAN_GETTER(AVSubtitleRect::GetH) {
   NanScope();
 
-  AVSubtitleRect *obj = ObjectWrap::Unwrap<AVSubtitleRect>(args.This());
-  ::AVSubtitleRect *ref = obj->This();
+  ::AVSubtitleRect* wrap = Unwrap<AVSubtitleRect>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Number>(ref->h));
+  int h = wrap->h;
+  NanReturnValue(NanNew<Int32>(h));
 }
 
-NAN_PROPERTY_GETTER(AVSubtitleRect::GetNbColors) {
+NAN_GETTER(AVSubtitleRect::GetNbColors) {
   NanScope();
 
-  AVSubtitleRect *obj = ObjectWrap::Unwrap<AVSubtitleRect>(args.This());
-  ::AVSubtitleRect *ref = obj->This();
+  ::AVSubtitleRect* wrap = Unwrap<AVSubtitleRect>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Number>(ref->nb_colors));
+  int nb_colors = wrap->nb_colors;
+  NanReturnValue(NanNew<Int32>(nb_colors));
 }
 
-NAN_PROPERTY_GETTER(AVSubtitleRect::GetPict) {
+NAN_GETTER(AVSubtitleRect::GetPict) {
   NanScope();
 
-  AVSubtitleRect *obj = ObjectWrap::Unwrap<AVSubtitleRect>(args.This());
-  ::AVSubtitleRect *ref = obj->This();
-  Local<Value> arg[3];
-  arg[0] = NanNew<External>(&ref->pict);
-  arg[1] = NanNew<Number>(ref->w);
-  arg[2] = NanNew<Number>(ref->h);
-  Local<Object> ret = AVPicture::NewInstance(arg);
+  ::AVSubtitleRect* wrap = Unwrap<AVSubtitleRect>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  Local<Object> ret = AVPicture::NewInstance(&wrap->pict);
   NanReturnValue(ret);
 }
 
-NAN_PROPERTY_GETTER(AVSubtitleRect::GetType) {
+NAN_GETTER(AVSubtitleRect::GetType) {
   NanScope();
 
-  AVSubtitleRect *obj = ObjectWrap::Unwrap<AVSubtitleRect>(args.This());
-  ::AVSubtitleRect *ref = obj->This();
-  enum ::AVSubtitleType type = ref->type;
+  ::AVSubtitleRect* wrap = Unwrap<AVSubtitleRect>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Number>(type));
+  enum ::AVSubtitleType type = wrap->type;
+  NanReturnValue(NanNew<Uint32>(type));
 }
 
-NAN_PROPERTY_GETTER(AVSubtitleRect::GetText) {
+NAN_GETTER(AVSubtitleRect::GetText) {
   NanScope();
 
-  AVSubtitleRect *obj = ObjectWrap::Unwrap<AVSubtitleRect>(args.This());
-  ::AVSubtitleRect *ref = obj->This();
+  ::AVSubtitleRect* wrap = Unwrap<AVSubtitleRect>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<String>(ref->text ? ref->text : ""));
+  char* text = wrap->text;
+  if (text)
+    NanReturnValue(NanNew<String>(text));
+  else
+    NanReturnEmptyString();
 }
 
-NAN_PROPERTY_GETTER(AVSubtitleRect::GetAss) {
+NAN_GETTER(AVSubtitleRect::GetAss) {
   NanScope();
 
-  AVSubtitleRect *obj = ObjectWrap::Unwrap<AVSubtitleRect>(args.This());
-  ::AVSubtitleRect *ref = obj->This();
+  ::AVSubtitleRect* wrap = Unwrap<AVSubtitleRect>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<String>(ref->ass ? ref->ass : ""));
+  char* ass = wrap->ass;
+  if (ass)
+    NanReturnValue(NanNew<String>(ass));
+  else
+    NanReturnEmptyString();
+}
+
+NAN_GETTER(AVSubtitleRect::GetFlags) {
+  NanScope();
+
+  ::AVSubtitleRect* wrap = Unwrap<AVSubtitleRect>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  int flags = wrap->flags;
+  NanReturnValue(NanNew<Int32>(flags));
 }
 
 }  // namespace avcodec

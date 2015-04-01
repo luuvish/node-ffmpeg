@@ -1,5 +1,6 @@
 
-FFmpeg = require './ffmpeg'
+ffmpeg = require './ffmpeg'
+avutil = ffmpeg.avutil
 
 module.exports =
   iformat: null
@@ -20,8 +21,8 @@ module.exports =
   display_disable: false
   show_status: true
   av_sync_type: 'audio'
-  start_time: FFmpeg.AV_NOPTS_VALUE
-  duration: FFmpeg.AV_NOPTS_VALUE
+  start_time: avutil.AV_NOPTS_VALUE
+  duration: avutil.AV_NOPTS_VALUE
   workaround_bugs: 1
   fast: false
   lowres: 0
