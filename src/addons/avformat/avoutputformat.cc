@@ -1,5 +1,4 @@
 #include "avformat/avoutputformat.h"
-#include "avutil/avutil.h"
 
 using namespace v8;
 
@@ -8,20 +7,6 @@ namespace avformat {
 
 Persistent<FunctionTemplate> AVOutputFormat::constructor;
 
-AVOutputFormat::AVOutputFormat(::AVOutputFormat *ref)
-  : this_(ref), alloc_(false) {
-  if (this_ == nullptr) {
-    this_ = (::AVOutputFormat *)av_mallocz(sizeof(::AVOutputFormat));
-    alloc_ = true;
-  }
-}
-
-AVOutputFormat::~AVOutputFormat() {
-  if (this_ != nullptr && alloc_ == true) {
-    av_freep(&this_);
-  }
-}
-
 void AVOutputFormat::Init(Handle<Object> exports) {
   NanScope();
 
@@ -29,31 +14,35 @@ void AVOutputFormat::Init(Handle<Object> exports) {
   tpl->SetClassName(NanNew("AVOutputFormat"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-  tpl->InstanceTemplate()->SetAccessor(NanNew("name"), GetName);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("long_name"), GetLongName);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("mime_type"), GetMimeType);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("extensions"), GetExtensions);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("audio_codec"), GetAudioCodec);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("video_codec"), GetVideoCodec);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("subtitle_codec"),
-                                       GetSubtitleCodec);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("flags"), GetFlags, SetFlags);
+  Local<ObjectTemplate> inst = tpl->InstanceTemplate();
+
+  inst->SetAccessor(NanNew("name"), GetName);
+  inst->SetAccessor(NanNew("long_name"), GetLongName);
+  inst->SetAccessor(NanNew("mime_type"), GetMimeType);
+  inst->SetAccessor(NanNew("extensions"), GetExtensions);
+  inst->SetAccessor(NanNew("audio_codec"), GetAudioCodec);
+  inst->SetAccessor(NanNew("video_codec"), GetVideoCodec);
+  inst->SetAccessor(NanNew("subtitle_codec"), GetSubtitleCodec);
+  inst->SetAccessor(NanNew("flags"), GetFlags, SetFlags);
 
   NODE_SET_METHOD(tpl->GetFunction(), "guessFormat", GuessFormat);
   NODE_SET_METHOD(tpl->GetFunction(), "guessCodec", GuessCodec);
   NODE_SET_METHOD(tpl->GetFunction(), "queryCodec", QueryCodec);
 
   NanAssignPersistent(constructor, tpl);
-  exports->Set(NanNew("AVOutputFormat"), tpl->GetFunction());
+
+  NODE_SET_METHOD(exports, "oformats", GetOFormats);
+  NODE_SET_METHOD(exports, "guessFormat", GuessFormat);
+  NODE_SET_METHOD(exports, "guessCodec", GuessCodec);
+  NODE_SET_METHOD(exports, "queryCodec", QueryCodec);
 }
 
-Local<Object> AVOutputFormat::NewInstance(Local<Value> arg) {
+Local<Object> AVOutputFormat::NewInstance(::AVOutputFormat* wrap) {
   NanEscapableScope();
 
-  const int argc = 1;
-  Local<Value> argv[argc] = { arg };
-  Local<Function> ctor = constructor->GetFunction();
-  Local<Object> instance = ctor->NewInstance(argc, argv);
+  Local<Function> cons = NanNew(constructor)->GetFunction();
+  Local<Object> instance = cons->NewInstance(0, nullptr);
+  ObjectWrap::Unwrap<AVOutputFormat>(instance)->This(wrap);
 
   return NanEscapeScope(instance);
 }
@@ -64,26 +53,34 @@ bool AVOutputFormat::HasInstance(Handle<Value> value) {
   return NanHasInstance(constructor, obj);
 }
 
-NAN_METHOD(AVOutputFormat::New) {
-  NanEscapableScope();
+::AVOutputFormat* AVOutputFormat::This(::AVOutputFormat* wrap) {
+  if (wrap != nullptr) this_ = wrap;
+  return this_;
+}
 
-  if (args.IsConstructCall()) {
-    ::AVOutputFormat *ref = nullptr;
-    if (args[0]->IsExternal())
-      ref = static_cast<::AVOutputFormat *>(External::Unwrap(args[0]));
-    AVOutputFormat *obj = new AVOutputFormat(ref);
-    obj->Wrap(args.This());
-    NanReturnValue(args.This());
-  } else {
-    const int argc = 1;
-    Local<Value> argv[argc] = { args[0] };
-    Local<Function> ctor = constructor->GetFunction();
-    NanReturnValue(ctor->NewInstance(argc, argv));
+NAN_METHOD(AVOutputFormat::GetOFormats) {
+  NanScope();
+
+  ::AVOutputFormat* fmt = nullptr;
+  int size = 0;
+
+  while ((fmt = av_oformat_next(fmt))) size++;
+
+  Local<Array> ret = NanNew<Array>(size);
+  fmt = nullptr;
+  for (int i = 0; i < size; i++) {
+    fmt = av_oformat_next(fmt);
+    ret->Set(i, NewInstance(fmt));
   }
+
+  if (size > 0)
+    NanReturnValue(ret);
+  else
+    NanReturnNull();
 }
 
 NAN_METHOD(AVOutputFormat::GuessFormat) {
-  NanEscapableScope();
+  NanScope();
 
   if (!args[0]->IsString())
     return NanThrowTypeError("guessFormat: short_name string required");
@@ -92,20 +89,20 @@ NAN_METHOD(AVOutputFormat::GuessFormat) {
   if (!args[2]->IsString())
     return NanThrowTypeError("guessFormat: mime_type string required");
 
-  String::Utf8Value short_name(args[0]);
-  String::Utf8Value filename(args[1]);
-  String::Utf8Value mime_type(args[2]);
+  NanUtf8String short_name(args[0]);
+  NanUtf8String filename(args[1]);
+  NanUtf8String mime_type(args[2]);
 
-  ::AVOutputFormat *ref = av_guess_format(*short_name, *filename, *mime_type);
+  ::AVOutputFormat* wrap = av_guess_format(*short_name, *filename, *mime_type);
 
-  if (ref)
-    NanReturnValue(NewInstance(NanNew<External>(ref)));
+  if (wrap)
+    NanReturnValue(NewInstance(wrap));
   else
     NanReturnNull();
 }
 
 NAN_METHOD(AVOutputFormat::GuessCodec) {
-  NanEscapableScope();
+  NanScope();
 
   if (!HasInstance(args[0]))
     return NanThrowTypeError("guessCodec: AVOutputFormat instance expected");
@@ -118,21 +115,24 @@ NAN_METHOD(AVOutputFormat::GuessCodec) {
   if (!args[4]->IsNumber())
     return NanThrowTypeError("guessCodec: media type enum required");
 
-  ::AVOutputFormat *ref = Unwrap<AVOutputFormat>(args[0]->ToObject())->This();
-  String::Utf8Value short_name(args[1]);
-  String::Utf8Value filename(args[2]);
-  String::Utf8Value mime_type(args[3]);
+  ::AVOutputFormat* wrap = Unwrap<AVOutputFormat>(args[0]->ToObject())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  NanUtf8String short_name(args[1]);
+  NanUtf8String filename(args[2]);
+  NanUtf8String mime_type(args[3]);
   enum ::AVMediaType type =
-    static_cast<enum ::AVMediaType>(args[4]->Uint32Value());
+    static_cast<enum ::AVMediaType>(args[4]->Int32Value());
 
   enum ::AVCodecID codec_id =
-    av_guess_codec(ref, *short_name, *filename, *mime_type, type);
+    av_guess_codec(wrap, *short_name, *filename, *mime_type, type);
 
-  NanReturnValue(NanNew<Integer>(codec_id));
+  NanReturnValue(NanNew<Uint32>(codec_id));
 }
 
 NAN_METHOD(AVOutputFormat::QueryCodec) {
-  NanEscapableScope();
+  NanScope();
 
   if (!HasInstance(args[0]))
     return NanThrowTypeError("queryCodec: AVOutputFormat instance expected");
@@ -141,22 +141,39 @@ NAN_METHOD(AVOutputFormat::QueryCodec) {
   if (!args[2]->IsNumber())
     return NanThrowTypeError("queryCodec: std_compliance integer required");
 
-  ::AVOutputFormat *ref = Unwrap<AVOutputFormat>(args[0]->ToObject())->This();
+  ::AVOutputFormat* wrap = Unwrap<AVOutputFormat>(args[0]->ToObject())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
   enum ::AVCodecID codec_id =
     static_cast<enum ::AVCodecID>(args[1]->Uint32Value());
   int std_compliance = args[2]->Int32Value();
 
-  int ret = avformat_query_codec(ref, codec_id, std_compliance);
+  int ret = avformat_query_codec(wrap, codec_id, std_compliance);
 
-  NanReturnValue(NanNew<Integer>(ret));
+  NanReturnValue(NanNew<Int32>(ret));
+}
+
+NAN_METHOD(AVOutputFormat::New) {
+  NanScope();
+
+  if (args.IsConstructCall()) {
+    AVOutputFormat* obj = new AVOutputFormat();
+    obj->Wrap(args.This());
+    NanReturnValue(args.This());
+  } else {
+    NanReturnUndefined();
+  }
 }
 
 NAN_GETTER(AVOutputFormat::GetName) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVOutputFormat *ref = Unwrap<AVOutputFormat>(args.This())->This();
-  const char *name = ref->name;
+  ::AVOutputFormat* wrap = Unwrap<AVOutputFormat>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  const char* name = wrap->name;
   if (name)
     NanReturnValue(NanNew<String>(name));
   else
@@ -164,11 +181,13 @@ NAN_GETTER(AVOutputFormat::GetName) {
 }
 
 NAN_GETTER(AVOutputFormat::GetLongName) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVOutputFormat *ref = Unwrap<AVOutputFormat>(args.This())->This();
-  const char *long_name = ref->long_name;
+  ::AVOutputFormat* wrap = Unwrap<AVOutputFormat>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  const char* long_name = wrap->long_name;
   if (long_name)
     NanReturnValue(NanNew<String>(long_name));
   else
@@ -176,11 +195,13 @@ NAN_GETTER(AVOutputFormat::GetLongName) {
 }
 
 NAN_GETTER(AVOutputFormat::GetMimeType) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVOutputFormat *ref = Unwrap<AVOutputFormat>(args.This())->This();
-  const char *mime_type = ref->mime_type;
+  ::AVOutputFormat* wrap = Unwrap<AVOutputFormat>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  const char* mime_type = wrap->mime_type;
   if (mime_type)
     NanReturnValue(NanNew<String>(mime_type));
   else
@@ -188,11 +209,13 @@ NAN_GETTER(AVOutputFormat::GetMimeType) {
 }
 
 NAN_GETTER(AVOutputFormat::GetExtensions) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVOutputFormat *ref = Unwrap<AVOutputFormat>(args.This())->This();
-  const char *extensions = ref->extensions;
+  ::AVOutputFormat* wrap = Unwrap<AVOutputFormat>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  const char* extensions = wrap->extensions;
   if (extensions)
     NanReturnValue(NanNew<String>(extensions));
   else
@@ -200,46 +223,56 @@ NAN_GETTER(AVOutputFormat::GetExtensions) {
 }
 
 NAN_GETTER(AVOutputFormat::GetAudioCodec) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVOutputFormat *ref = Unwrap<AVOutputFormat>(args.This())->This();
-  enum ::AVCodecID audio_codec = ref->audio_codec;
+  ::AVOutputFormat* wrap = Unwrap<AVOutputFormat>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(audio_codec));
+  enum ::AVCodecID audio_codec = wrap->audio_codec;
+  NanReturnValue(NanNew<Uint32>(audio_codec));
 }
 
 NAN_GETTER(AVOutputFormat::GetVideoCodec) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVOutputFormat *ref = Unwrap<AVOutputFormat>(args.This())->This();
-  enum ::AVCodecID video_codec = ref->video_codec;
+  ::AVOutputFormat* wrap = Unwrap<AVOutputFormat>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(video_codec));
+  enum ::AVCodecID video_codec = wrap->video_codec;
+  NanReturnValue(NanNew<Uint32>(video_codec));
 }
 
 NAN_GETTER(AVOutputFormat::GetSubtitleCodec) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVOutputFormat *ref = Unwrap<AVOutputFormat>(args.This())->This();
-  enum ::AVCodecID subtitle_codec = ref->subtitle_codec;
+  ::AVOutputFormat* wrap = Unwrap<AVOutputFormat>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(subtitle_codec));
+  enum ::AVCodecID subtitle_codec = wrap->subtitle_codec;
+  NanReturnValue(NanNew<Uint32>(subtitle_codec));
 }
 
 NAN_GETTER(AVOutputFormat::GetFlags) {
-  NanEscapableScope();
+  NanScope();
 
-  ::AVOutputFormat *ref = Unwrap<AVOutputFormat>(args.This())->This();
-  int flags = ref->flags;
+  ::AVOutputFormat* wrap = Unwrap<AVOutputFormat>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
-  NanReturnValue(NanNew<Integer>(flags));
+  int flags = wrap->flags;
+  NanReturnValue(NanNew<Int32>(flags));
 }
 
 NAN_SETTER(AVOutputFormat::SetFlags) {
   NanScope();
 
-  ::AVOutputFormat *ref = Unwrap<AVOutputFormat>(args.This())->This();
-  ref->flags = value->Int32Value();
+  ::AVOutputFormat* wrap = Unwrap<AVOutputFormat>(args.This())->This();
+
+  if (wrap)
+    wrap->flags = value->Int32Value();
 }
 
 }  // namespace avformat

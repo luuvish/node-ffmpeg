@@ -13,14 +13,16 @@ namespace avformat {
 class AVProgram : public node::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> exports);
-  static v8::Local<v8::Object> NewInstance(v8::Local<v8::Value> arg);
+  static v8::Local<v8::Object> NewInstance(::AVProgram* wrap);
   static bool HasInstance(v8::Handle<v8::Value> value);
-  inline ::AVProgram *This() { return this_; }
+  ::AVProgram* This(::AVProgram* wrap = nullptr);
 
  private:
-  explicit AVProgram(::AVProgram *ref = nullptr);
-  virtual ~AVProgram();
+  explicit AVProgram() : this_(nullptr) {}
+  ~AVProgram() {}
+  ::AVProgram* this_;
 
+  static v8::Persistent<v8::FunctionTemplate> constructor;
   static NAN_METHOD(New);
   static NAN_GETTER(GetId);
   static NAN_GETTER(GetFlags);
@@ -39,10 +41,6 @@ class AVProgram : public node::ObjectWrap {
   static NAN_GETTER(GetEndTime);
   static NAN_GETTER(GetPtsWrapReference);
   static NAN_GETTER(GetPtsWrapBehavior);
-  static v8::Persistent<v8::FunctionTemplate> constructor;
-
-  ::AVProgram *this_;
-  bool alloc_;
 };
 
 }  // namespace avformat

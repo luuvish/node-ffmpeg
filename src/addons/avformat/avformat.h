@@ -10,14 +10,16 @@ extern "C" {
 namespace ffmpeg {
 namespace avformat {
 
-class AVFormat {
+extern void Init(v8::Handle<v8::Object> exports);
+
+class AVStreamParseType {
  public:
   static void Init(v8::Handle<v8::Object> exports);
+};
 
- private:
-  static NAN_METHOD(Version);
-  static NAN_METHOD(Configuration);
-  static NAN_METHOD(License);
+class AVDurationEstimationMethod {
+ public:
+  static void Init(v8::Handle<v8::Object> exports);
 };
 
 }  // namespace avformat

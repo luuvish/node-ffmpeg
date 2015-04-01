@@ -1,4 +1,3 @@
-#include "avutil/avutil.h"
 #include "avcodec/avsubtitle.h"
 #include "avcodec/avsubtitlerect.h"
 
@@ -9,20 +8,6 @@ namespace avcodec {
 
 Persistent<FunctionTemplate> AVSubtitle::constructor;
 
-AVSubtitle::AVSubtitle(::AVSubtitle *ref) : this_(ref), alloc_(false) {
-  if (this_ == nullptr) {
-    this_ = (::AVSubtitle *)av_mallocz(sizeof(::AVSubtitle));
-    alloc_ = true;
-  }
-}
-
-AVSubtitle::~AVSubtitle() {
-  if (this_ != nullptr && alloc_ == true) {
-    avsubtitle_free(this_);
-    av_freep(&this_);
-  }
-}
-
 void AVSubtitle::Init(Handle<Object> exports) {
   NanScope();
 
@@ -30,57 +15,29 @@ void AVSubtitle::Init(Handle<Object> exports) {
   tpl->SetClassName(NanNew("AVSubtitle"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-  tpl->InstanceTemplate()->SetAccessor(NanNew("format"), GetFormat);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("start_display_time"),
-                                       GetStartDisplayTime);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("end_display_time"),
-                                       GetEndDisplayTime);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("rects"), GetRects);
-  tpl->InstanceTemplate()->SetAccessor(NanNew("pts"), GetPts);
-
   NODE_SET_PROTOTYPE_METHOD(tpl, "free", Free);
 
+  Local<ObjectTemplate> inst = tpl->InstanceTemplate();
+
+  inst->SetAccessor(NanNew("format"), GetFormat, SetFormat);
+  inst->SetAccessor(NanNew("start_display_time"),
+                    GetStartDisplayTime, SetStartDisplayTime);
+  inst->SetAccessor(NanNew("end_display_time"),
+                    GetEndDisplayTime, SetEndDisplayTime);
+  inst->SetAccessor(NanNew("rects"), GetRects);
+  inst->SetAccessor(NanNew("pts"), GetPts, SetPts);
+
   NanAssignPersistent(constructor, tpl);
+
   exports->Set(NanNew("AVSubtitle"), tpl->GetFunction());
 }
 
-NAN_METHOD(AVSubtitle::New) {
-  NanScope();
-
-  if (args.IsConstructCall()) {
-    ::AVSubtitle *ref = nullptr;
-    if (args[0]->IsExternal())
-      ref = static_cast<::AVSubtitle *>(External::Unwrap(args[0]));
-    AVSubtitle *obj = new AVSubtitle(ref);
-    obj->Wrap(args.This());
-    NanReturnValue(args.This());
-  } else {
-    const int argc = 1;
-    Local<Value> argv[argc] = { args[0] };
-    Local<Function> ctor = constructor->GetFunction();
-    NanReturnValue(ctor->NewInstance(argc, argv));
-  }
-}
-
-NAN_METHOD(AVSubtitle::Free) {
-  NanScope();
-
-  AVSubtitle *obj = ObjectWrap::Unwrap<AVSubtitle>(args.This());
-  ::AVSubtitle *ref = obj->This();
-  avsubtitle_free(ref);
-  obj->this_ = nullptr;
-  obj->alloc_ = false;
-
-  NanReturnUndefined();
-}
-
-Local<Object> AVSubtitle::NewInstance(Local<Value> arg) {
+Local<Object> AVSubtitle::NewInstance(::AVSubtitle* wrap) {
   NanEscapableScope();
 
-  const int argc = 1;
-  Local<Value> argv[argc] = { arg };
-  Local<Function> ctor = constructor->GetFunction();
-  Local<Object> instance = ctor->NewInstance(argc, argv);
+  Local<Function> cons = NanNew(constructor)->GetFunction();
+  Local<Object> instance = cons->NewInstance(0, nullptr);
+  ObjectWrap::Unwrap<AVSubtitle>(instance)->This(wrap);
 
   return NanEscapeScope(instance);
 }
@@ -91,62 +48,157 @@ bool AVSubtitle::HasInstance(Handle<Value> value) {
   return NanHasInstance(constructor, obj);
 }
 
-NAN_PROPERTY_GETTER(AVSubtitle::GetFormat) {
-  NanScope();
-
-  AVSubtitle *obj = ObjectWrap::Unwrap<AVSubtitle>(args.This());
-  ::AVSubtitle *ref = obj->This();
-  uint16_t format = ref->format;
-
-  NanReturnValue(NanNew<Number>(format));
+::AVSubtitle* AVSubtitle::This(::AVSubtitle* wrap) {
+  if (wrap != nullptr) this_ = wrap;
+  return this_;
 }
 
-NAN_PROPERTY_GETTER(AVSubtitle::GetStartDisplayTime) {
-  NanScope();
-
-  AVSubtitle *obj = ObjectWrap::Unwrap<AVSubtitle>(args.This());
-  ::AVSubtitle *ref = obj->This();
-  uint32_t start_display_time = ref->start_display_time;
-
-  NanReturnValue(NanNew<Number>(start_display_time));
+AVSubtitle::AVSubtitle() : this_(nullptr) {
+  this_ = (::AVSubtitle*)av_mallocz(sizeof(::AVSubtitle));
+  if (this_ == nullptr)
+    NanThrowTypeError("AVSubtitle: cannot allocation");
 }
 
-NAN_PROPERTY_GETTER(AVSubtitle::GetEndDisplayTime) {
-  NanScope();
-
-  AVSubtitle *obj = ObjectWrap::Unwrap<AVSubtitle>(args.This());
-  ::AVSubtitle *ref = obj->This();
-  uint32_t end_display_time = ref->end_display_time;
-
-  NanReturnValue(NanNew<Number>(end_display_time));
+AVSubtitle::~AVSubtitle() {
+  if (this_ != nullptr) {
+    if (this_->num_rects > 0)
+      avsubtitle_free(this_);
+    av_freep(&this_);
+  }
 }
 
-NAN_PROPERTY_GETTER(AVSubtitle::GetRects) {
+NAN_METHOD(AVSubtitle::New) {
   NanScope();
 
-  AVSubtitle *obj = ObjectWrap::Unwrap<AVSubtitle>(args.This());
-  ::AVSubtitle *ref = obj->This();
+  if (args.IsConstructCall()) {
+    AVSubtitle* obj = new AVSubtitle();
+    obj->Wrap(args.This());
+    NanReturnValue(args.This());
+  } else {
+    NanReturnUndefined();
+  }
+}
 
-  Local<Array> ret = NanNew<Array>(ref->num_rects);
-  for (unsigned int i = 0; i < ref->num_rects; i++) {
-    if (ref->rects[i]) {
-      Local<External> e = NanNew<External>(ref->rects[i]);
-      Local<Object> v = AVSubtitleRect::NewInstance(e);
-      ret->Set(i, v);
+NAN_METHOD(AVSubtitle::Free) {
+  NanScope();
+
+  AVSubtitle* obj = Unwrap<AVSubtitle>(args.This());
+
+  if (obj->this_) {
+    if (obj->this_->num_rects > 0)
+      avsubtitle_free(obj->this_);
+    obj->this_ = nullptr;
+  }
+  NanReturnUndefined();
+}
+
+NAN_GETTER(AVSubtitle::GetFormat) {
+  NanScope();
+
+  ::AVSubtitle* wrap = Unwrap<AVSubtitle>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  uint16_t format = wrap->format;
+  NanReturnValue(NanNew<Uint32>(format));
+}
+
+NAN_SETTER(AVSubtitle::SetFormat) {
+  NanScope();
+
+  if (!value->IsNumber())
+    NanThrowTypeError("format: integer required");
+
+  ::AVSubtitle* wrap = Unwrap<AVSubtitle>(args.This())->This();
+
+  if (wrap)
+    wrap->format = static_cast<uint16_t>(value->Uint32Value());
+}
+
+NAN_GETTER(AVSubtitle::GetStartDisplayTime) {
+  NanScope();
+
+  ::AVSubtitle* wrap = Unwrap<AVSubtitle>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  uint32_t start_display_time = wrap->start_display_time;
+  NanReturnValue(NanNew<Uint32>(start_display_time));
+}
+
+NAN_SETTER(AVSubtitle::SetStartDisplayTime) {
+  NanScope();
+
+  if (!value->IsNumber())
+    NanThrowTypeError("start_display_time: integer required");
+
+  ::AVSubtitle* wrap = Unwrap<AVSubtitle>(args.This())->This();
+
+  if (wrap)
+    wrap->start_display_time = value->Uint32Value();
+}
+
+NAN_GETTER(AVSubtitle::GetEndDisplayTime) {
+  NanScope();
+
+  ::AVSubtitle* wrap = Unwrap<AVSubtitle>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  uint32_t end_display_time = wrap->end_display_time;
+  NanReturnValue(NanNew<Uint32>(end_display_time));
+}
+
+NAN_SETTER(AVSubtitle::SetEndDisplayTime) {
+  NanScope();
+
+  if (!value->IsNumber())
+    NanThrowTypeError("end_display_time: integer required");
+
+  ::AVSubtitle* wrap = Unwrap<AVSubtitle>(args.This())->This();
+
+  if (wrap)
+    wrap->end_display_time = value->Uint32Value();
+}
+
+NAN_GETTER(AVSubtitle::GetRects) {
+  NanScope();
+
+  ::AVSubtitle* wrap = Unwrap<AVSubtitle>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  Local<Array> rets = NanNew<Array>(wrap->num_rects);
+  for (uint32_t i = 0; i < wrap->num_rects; i++) {
+    if (wrap->rects[i]) {
+      Local<Object> v = AVSubtitleRect::NewInstance(wrap->rects[i]);
+      rets->Set(i, v);
     }
   }
-
-  NanReturnValue(ret);
+  NanReturnValue(rets);
 }
 
-NAN_PROPERTY_GETTER(AVSubtitle::GetPts) {
+NAN_GETTER(AVSubtitle::GetPts) {
   NanScope();
 
-  AVSubtitle *obj = ObjectWrap::Unwrap<AVSubtitle>(args.This());
-  ::AVSubtitle *ref = obj->This();
-  int64_t pts = ref->pts;
+  ::AVSubtitle* wrap = Unwrap<AVSubtitle>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
 
+  int64_t pts = wrap->pts;
   NanReturnValue(NanNew<Number>(pts));
+}
+
+NAN_SETTER(AVSubtitle::SetPts) {
+  NanScope();
+
+  if (!value->IsNumber())
+    NanThrowTypeError("pts: integer required");
+
+  ::AVSubtitle* wrap = Unwrap<AVSubtitle>(args.This())->This();
+
+  if (wrap)
+    wrap->pts = value->IntegerValue();
 }
 
 }  // namespace avcodec

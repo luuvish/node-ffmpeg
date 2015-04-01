@@ -1,10 +1,10 @@
-ffmpeg = require '../lib/ffmpeg'
+ffmpeg = require '../../lib/ffmpeg'
 
 describe 'ffmpeg.avutil', ->
   avutil = ffmpeg.avutil
 
   it 'avutil functions', ->
-    expect(avutil.version()).toBe 3542884
+    expect(avutil.version()).toBe 3544164
     expect(avutil.license()).toBe 'LGPL version 2.1 or later'
     expect(avutil.getTimeBaseQ()).toEqual { num: 1, den: 1000000 }
 

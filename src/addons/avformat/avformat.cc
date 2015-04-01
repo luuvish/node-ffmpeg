@@ -1,6 +1,7 @@
 #include "avformat/avformat.h"
 #include "avformat/avinputformat.h"
 #include "avformat/avoutputformat.h"
+#include "avformat/avstream.h"
 #include "avformat/avprogram.h"
 #include "avformat/avchapter.h"
 #include "avformat/avformatcontext.h"
@@ -10,7 +11,37 @@ using namespace v8;
 namespace ffmpeg {
 namespace avformat {
 
-void AVFormat::Init(Handle<Object> exports) {
+NAN_METHOD(Version) {
+  NanScope();
+
+  unsigned ret = avformat_version();
+
+  NanReturnValue(NanNew<Uint32>(ret));
+}
+
+NAN_METHOD(Configuration) {
+  NanScope();
+
+  const char* ret = avformat_configuration();
+
+  if (ret)
+    NanReturnValue(NanNew<String>(ret));
+  else
+    NanReturnEmptyString();
+}
+
+NAN_METHOD(License) {
+  NanScope();
+
+  const char* ret = avformat_license();
+
+  if (ret)
+    NanReturnValue(NanNew<String>(ret));
+  else
+    NanReturnEmptyString();
+}
+
+void Init(Handle<Object> exports) {
   NanScope();
 
   av_register_all();
@@ -44,12 +75,10 @@ void AVFormat::Init(Handle<Object> exports) {
   NODE_DEFINE_CONSTANT(obj, AVFMT_TS_NEGATIVE);
   NODE_DEFINE_CONSTANT(obj, AVFMT_SEEK_TO_PTS);
 
-  NODE_DEFINE_CONSTANT(obj, AVSTREAM_PARSE_NONE);
-  NODE_DEFINE_CONSTANT(obj, AVSTREAM_PARSE_FULL);
-  NODE_DEFINE_CONSTANT(obj, AVSTREAM_PARSE_HEADERS);
-  NODE_DEFINE_CONSTANT(obj, AVSTREAM_PARSE_TIMESTAMPS);
-  NODE_DEFINE_CONSTANT(obj, AVSTREAM_PARSE_FULL_ONCE);
-  NODE_DEFINE_CONSTANT(obj, AVSTREAM_PARSE_FULL_RAW);
+  AVInputFormat::Init(obj);
+  AVOutputFormat::Init(obj);
+
+  AVStreamParseType::Init(obj);
 
   NODE_DEFINE_CONSTANT(obj, AV_DISPOSITION_DEFAULT);
   NODE_DEFINE_CONSTANT(obj, AV_DISPOSITION_DUB);
@@ -70,8 +99,11 @@ void AVFormat::Init(Handle<Object> exports) {
   NODE_DEFINE_CONSTANT(obj, AV_PTS_WRAP_ADD_OFFSET);
   NODE_DEFINE_CONSTANT(obj, AV_PTS_WRAP_SUB_OFFSET);
 
-  AVInputFormat::Init(obj);
-  AVOutputFormat::Init(obj);
+  AVStream::Init(obj);
+  AVProgram::Init(obj);
+  AVChapter::Init(obj);
+
+  AVDurationEstimationMethod::Init(obj);
 
   NODE_DEFINE_CONSTANT(obj, AVFMT_FLAG_GENPTS);
   NODE_DEFINE_CONSTANT(obj, AVFMT_FLAG_IGNIDX);
@@ -89,13 +121,15 @@ void AVFormat::Init(Handle<Object> exports) {
   NODE_DEFINE_CONSTANT(obj, AVFMT_FLAG_PRIV_OPT);
   NODE_DEFINE_CONSTANT(obj, AVFMT_FLAG_KEEP_SIDE_DATA);
 
-/*
-  AVStream::Init(obj);
-*/
-  AVProgram::Init(obj);
-  AVChapter::Init(obj);
+  NODE_DEFINE_CONSTANT(obj, AVFMT_AVOID_NEG_TS_AUTO);
+  NODE_DEFINE_CONSTANT(obj, AVFMT_AVOID_NEG_TS_MAKE_NON_NEGATIVE);
+  NODE_DEFINE_CONSTANT(obj, AVFMT_AVOID_NEG_TS_MAKE_ZERO);
 
   AVFormatContext::Init(obj);
+
+  NODE_SET_METHOD(obj, "version", Version);
+  NODE_SET_METHOD(obj, "configuration", Configuration);
+  NODE_SET_METHOD(obj, "license", License);
 
   NODE_DEFINE_CONSTANT(obj, AVSEEK_FLAG_BACKWARD);
   NODE_DEFINE_CONSTANT(obj, AVSEEK_FLAG_BYTE);
@@ -105,34 +139,31 @@ void AVFormat::Init(Handle<Object> exports) {
   exports->Set(NanNew("avformat"), obj);
 }
 
-NAN_METHOD(AVFormat::Version) {
-  NanEscapableScope();
+void AVStreamParseType::Init(Handle<Object> exports) {
+  NanScope();
 
-  unsigned ret = avformat_version();
+  Local<Object> obj = NanNew<Object>();
 
-  NanReturnValue(NanNew<Integer>(ret));
+  NODE_DEFINE_CONSTANT(obj, AVSTREAM_PARSE_NONE);
+  NODE_DEFINE_CONSTANT(obj, AVSTREAM_PARSE_FULL);
+  NODE_DEFINE_CONSTANT(obj, AVSTREAM_PARSE_HEADERS);
+  NODE_DEFINE_CONSTANT(obj, AVSTREAM_PARSE_TIMESTAMPS);
+  NODE_DEFINE_CONSTANT(obj, AVSTREAM_PARSE_FULL_ONCE);
+  NODE_DEFINE_CONSTANT(obj, AVSTREAM_PARSE_FULL_RAW);
+
+  exports->Set(NanNew("AVStreamParseType"), obj);
 }
 
-NAN_METHOD(AVFormat::Configuration) {
-  NanEscapableScope();
+void AVDurationEstimationMethod::Init(Handle<Object> exports) {
+  NanScope();
 
-  const char *ret = avformat_configuration();
+  Local<Object> obj = NanNew<Object>();
 
-  if (ret)
-    NanReturnValue(NanNew<String>(ret));
-  else
-    NanReturnEmptyString();
-}
+  NODE_DEFINE_CONSTANT(obj, AVFMT_DURATION_FROM_PTS);
+  NODE_DEFINE_CONSTANT(obj, AVFMT_DURATION_FROM_STREAM);
+  NODE_DEFINE_CONSTANT(obj, AVFMT_DURATION_FROM_BITRATE);
 
-NAN_METHOD(AVFormat::License) {
-  NanEscapableScope();
-
-  const char *ret = avformat_license();
-
-  if (ret)
-    NanReturnValue(NanNew<String>(ret));
-  else
-    NanReturnEmptyString();
+  exports->Set(NanNew("AVDurationEstimationMethod"), obj);
 }
 
 }  // namespace avformat

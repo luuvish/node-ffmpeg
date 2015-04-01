@@ -13,25 +13,27 @@ namespace avcodec {
 class AVSubtitle : public node::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> exports);
-  static v8::Local<v8::Object> NewInstance(v8::Local<v8::Value> arg);
+  static v8::Local<v8::Object> NewInstance(::AVSubtitle* wrap);
   static bool HasInstance(v8::Handle<v8::Value> value);
-  inline ::AVSubtitle *This() { return this_; }
+  ::AVSubtitle* This(::AVSubtitle* wrap = nullptr);
 
  private:
-  explicit AVSubtitle(::AVSubtitle *ref = nullptr);
-  virtual ~AVSubtitle();
+  explicit AVSubtitle();
+  ~AVSubtitle();
+  ::AVSubtitle* this_;
 
+  static v8::Persistent<v8::FunctionTemplate> constructor;
   static NAN_METHOD(New);
   static NAN_METHOD(Free);
-  static NAN_PROPERTY_GETTER(GetFormat);
-  static NAN_PROPERTY_GETTER(GetStartDisplayTime);
-  static NAN_PROPERTY_GETTER(GetEndDisplayTime);
-  static NAN_PROPERTY_GETTER(GetRects);
-  static NAN_PROPERTY_GETTER(GetPts);
-  static v8::Persistent<v8::FunctionTemplate> constructor;
-
-  ::AVSubtitle *this_;
-  bool alloc_;
+  static NAN_GETTER(GetFormat);
+  static NAN_SETTER(SetFormat);
+  static NAN_GETTER(GetStartDisplayTime);
+  static NAN_SETTER(SetStartDisplayTime);
+  static NAN_GETTER(GetEndDisplayTime);
+  static NAN_SETTER(SetEndDisplayTime);
+  static NAN_GETTER(GetRects);
+  static NAN_GETTER(GetPts);
+  static NAN_SETTER(SetPts);
 };
 
 }  // namespace avcodec
