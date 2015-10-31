@@ -18,35 +18,155 @@ using namespace v8;
 namespace ffmpeg {
 namespace avformat {
 
-/*
-AVReadFrameWorker::
-AVReadFrameWorker(std::list<NanAsyncWorker*> *q,
-                  ::AVFormatContext *ctx, ::AVPacket *pkt,
-                  NanCallback *callback)
-  : NanAsyncWorker(callback), queue(q), context(ctx), packet(pkt) {
-}
+class AVReadFrameWorker : public NanAsyncWorker {
+ public:
+  explicit AVReadFrameWorker(
+    NanCallback* callback, ::AVFormatContext* ctx, ::AVPacket* pkt)
+    : NanAsyncWorker(callback), ctx_(ctx), pkt_(pkt) {}
+  ~AVReadFrameWorker() {}
 
-AVReadFrameWorker::~AVReadFrameWorker() {
-}
+  void Execute() {
+    ret_ = av_read_frame(ctx_, pkt_);
+  }
 
-void AVReadFrameWorker::Execute() {
-  result = av_read_frame(context, packet);
-}
+  void HandleOKCallback() {
+    NanScope();
 
-void AVReadFrameWorker::HandleOKCallback() {
-  NanScope();
+    const unsigned argc = 3;
+    Local<Value> argv[argc] = {
+      NanNull(),
+      NanNew<Int32>(ret_),
+      avcodec::AVPacket::NewInstance(pkt_)
+    };
+    callback->Call(argc, argv);
+  }
 
-  queue->pop_front();
-  if (queue->size() > 0)
-      NanAsyncQueueWorker(queue->front());
+ private:
+  ::AVFormatContext* ctx_;
+  ::AVPacket* pkt_;
+  int ret_;
+};
 
-  Handle<Value> pkt = AVCodec::AVPacketWrapper::newInstance(packet);
+class AVWriteFrameWorker : public NanAsyncWorker {
+ public:
+  explicit AVWriteFrameWorker(
+    NanCallback* callback, ::AVFormatContext* ctx, ::AVPacket* pkt)
+    : NanAsyncWorker(callback), ctx_(ctx), pkt_(pkt) {}
+  ~AVWriteFrameWorker() {}
 
-  const int argc = 2;
-  Handle<Value> argv[argc] = { NanNew<Number>(result), pkt };
-  callback->Call(argc, argv);
-}
-*/
+  void Execute() {
+    ret_ = av_write_frame(ctx_, pkt_);
+  }
+
+  void HandleOKCallback() {
+    NanScope();
+
+    const unsigned argc = 3;
+    Local<Value> argv[argc] = {
+      NanNull(),
+      NanNew<Int32>(ret_),
+      avcodec::AVPacket::NewInstance(pkt_)
+    };
+    callback->Call(argc, argv);
+  }
+
+ private:
+  ::AVFormatContext* ctx_;
+  ::AVPacket* pkt_;
+  int ret_;
+};
+
+class AVWriteInterleavedFrameWorker : public NanAsyncWorker {
+ public:
+  explicit AVWriteInterleavedFrameWorker(
+    NanCallback* callback, ::AVFormatContext* ctx, ::AVPacket* pkt)
+    : NanAsyncWorker(callback), ctx_(ctx), pkt_(pkt) {}
+  ~AVWriteInterleavedFrameWorker() {}
+
+  void Execute() {
+    ret_ = av_interleaved_write_frame(ctx_, pkt_);
+  }
+
+  void HandleOKCallback() {
+    NanScope();
+
+    const unsigned argc = 3;
+    Local<Value> argv[argc] = {
+      NanNull(),
+      NanNew<Int32>(ret_),
+      avcodec::AVPacket::NewInstance(pkt_)
+    };
+    callback->Call(argc, argv);
+  }
+
+ private:
+  ::AVFormatContext* ctx_;
+  ::AVPacket* pkt_;
+  int ret_;
+};
+
+class AVWriteUncodedFrameWorker : public NanAsyncWorker {
+ public:
+  explicit AVWriteUncodedFrameWorker(
+    NanCallback* callback, ::AVFormatContext* ctx, int index, ::AVFrame* frame)
+    : NanAsyncWorker(callback), ctx_(ctx), index_(index), frame_(frame) {}
+  ~AVWriteUncodedFrameWorker() {}
+
+  void Execute() {
+    ret_ = av_write_uncoded_frame(ctx_, index_, frame_);
+  }
+
+  void HandleOKCallback() {
+    NanScope();
+
+    const unsigned argc = 4;
+    Local<Value> argv[argc] = {
+      NanNull(),
+      NanNew<Int32>(ret_),
+      NanNew<Int32>(index_),
+      avutil::AVFrame::NewInstance(frame_)
+    };
+    callback->Call(argc, argv);
+  }
+
+ private:
+  ::AVFormatContext* ctx_;
+  int index_;
+  ::AVFrame* frame_;
+  int ret_;
+};
+
+class AVWriteInterleavedUncodedFrameWorker : public NanAsyncWorker {
+ public:
+  explicit AVWriteInterleavedUncodedFrameWorker(
+    NanCallback* callback, ::AVFormatContext* ctx, int index, ::AVFrame* frame)
+    : NanAsyncWorker(callback), ctx_(ctx), index_(index), frame_(frame) {}
+  ~AVWriteInterleavedUncodedFrameWorker() {}
+
+  void Execute() {
+    ret_ = av_interleaved_write_uncoded_frame(ctx_, index_, frame_);
+  }
+
+  void HandleOKCallback() {
+    NanScope();
+
+    const unsigned argc = 4;
+    Local<Value> argv[argc] = {
+      NanNull(),
+      NanNew<Int32>(ret_),
+      NanNew<Int32>(index_),
+      avutil::AVFrame::NewInstance(frame_)
+    };
+    callback->Call(argc, argv);
+  }
+
+ private:
+  ::AVFormatContext* ctx_;
+  int index_;
+  ::AVFrame* frame_;
+  int ret_;
+};
+
 
 Persistent<FunctionTemplate> AVFormatContext::constructor;
 
@@ -468,12 +588,8 @@ NAN_METHOD(AVFormatContext::ReadFrame) {
   ::AVPacket* pkt = Unwrap<avcodec::AVPacket>(args[0]->ToObject())->This();
 
   if (args[1]->IsFunction()) {
-    //NanCallback *callback = new NanCallback(Local<Function>::Cast(args[1]));
-    //AVReadFrameWorker *worker =
-    //  new AVReadFrameWorker(&obj->_async_queue, ref, pkt, callback);
-    //obj->_async_queue.push_back(worker);
-    //if (obj->_async_queue.size() == 1)
-    //  NanAsyncQueueWorker(obj->_async_queue.front());
+    NanCallback* callback = new NanCallback(args[1].As<Function>());
+    NanAsyncQueueWorker(new AVReadFrameWorker(callback, wrap, pkt));
     NanReturnUndefined();
   } else {
     int ret = av_read_frame(wrap, pkt);
@@ -634,8 +750,15 @@ NAN_METHOD(AVFormatContext::WriteFrame) {
     NanReturnUndefined();
 
   ::AVPacket* pkt = Unwrap<avcodec::AVPacket>(args[0]->ToObject())->This();
-  int ret = av_write_frame(wrap, pkt);
-  NanReturnValue(NanNew<Int32>(ret));
+
+  if (args[1]->IsFunction()) {
+    NanCallback* callback = new NanCallback(args[1].As<Function>());
+    NanAsyncQueueWorker(new AVWriteFrameWorker(callback, wrap, pkt));
+    NanReturnUndefined();
+  } else {
+    int ret = av_write_frame(wrap, pkt);
+    NanReturnValue(NanNew<Int32>(ret));
+  }
 }
 
 NAN_METHOD(AVFormatContext::WriteInterleavedFrame) {
@@ -649,8 +772,15 @@ NAN_METHOD(AVFormatContext::WriteInterleavedFrame) {
     NanReturnUndefined();
 
   ::AVPacket* pkt = Unwrap<avcodec::AVPacket>(args[0]->ToObject())->This();
-  int ret = av_interleaved_write_frame(wrap, pkt);
-  NanReturnValue(NanNew<Int32>(ret));
+
+  if (args[1]->IsFunction()) {
+    NanCallback* callback = new NanCallback(args[1].As<Function>());
+    NanAsyncQueueWorker(new AVWriteInterleavedFrameWorker(callback, wrap, pkt));
+    NanReturnUndefined();
+  } else {
+    int ret = av_interleaved_write_frame(wrap, pkt);
+    NanReturnValue(NanNew<Int32>(ret));
+  }
 }
 
 NAN_METHOD(AVFormatContext::WriteUncodedFrame) {
@@ -668,8 +798,16 @@ NAN_METHOD(AVFormatContext::WriteUncodedFrame) {
   int stream_index = args[0]->Int32Value();
   ::AVFrame* frame = Unwrap<avutil::AVFrame>(args[1]->ToObject())->This();
 
-  int ret = av_write_uncoded_frame(wrap, stream_index, frame);
-  NanReturnValue(NanNew<Int32>(ret));
+  if (args[1]->IsFunction()) {
+    NanCallback* callback = new NanCallback(args[1].As<Function>());
+    AVWriteUncodedFrameWorker* worker =
+      new AVWriteUncodedFrameWorker(callback, wrap, stream_index, frame);
+    NanAsyncQueueWorker(worker);
+    NanReturnUndefined();
+  } else {
+    int ret = av_write_uncoded_frame(wrap, stream_index, frame);
+    NanReturnValue(NanNew<Int32>(ret));
+  }
 }
 
 NAN_METHOD(AVFormatContext::WriteInterleavedUncodedFrame) {
@@ -687,8 +825,16 @@ NAN_METHOD(AVFormatContext::WriteInterleavedUncodedFrame) {
   int stream_index = args[0]->Int32Value();
   ::AVFrame* frame = Unwrap<avutil::AVFrame>(args[1]->ToObject())->This();
 
-  int ret = av_interleaved_write_uncoded_frame(wrap, stream_index, frame);
-  NanReturnValue(NanNew<Int32>(ret));
+  if (args[1]->IsFunction()) {
+    NanCallback* callback = new NanCallback(args[1].As<Function>());
+    AVWriteInterleavedUncodedFrameWorker* worker =
+      new AVWriteInterleavedUncodedFrameWorker(callback, wrap, stream_index, frame);
+    NanAsyncQueueWorker(worker);
+    NanReturnUndefined();
+  } else {
+    int ret = av_interleaved_write_uncoded_frame(wrap, stream_index, frame);
+    NanReturnValue(NanNew<Int32>(ret));
+  }
 }
 
 NAN_METHOD(AVFormatContext::WriteUncodedFrameQuery) {

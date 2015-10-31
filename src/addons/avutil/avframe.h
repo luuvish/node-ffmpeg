@@ -30,6 +30,7 @@ class AVFrame : public node::ObjectWrap {
   static NAN_METHOD(GetBuffer);
   static NAN_METHOD(Copy);
   static NAN_METHOD(CopyProps);
+  static NAN_METHOD(FillAudioFrame);
   static NAN_GETTER(GetIsWritable);
   static NAN_SETTER(SetIsWritable);
   static NAN_GETTER(GetData);

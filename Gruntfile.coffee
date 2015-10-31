@@ -7,7 +7,7 @@ module.exports = (grunt) ->
         expand: true
         cwd: 'src/coffee'
         src: ['**/*.coffee']
-        dest: 'lib'
+        dest: 'dist/lib'
         ext: '.js'
 
     coffeelint:
@@ -49,13 +49,6 @@ module.exports = (grunt) ->
           stderr: true
           failOnError: true
 
-      clean:
-        command: 'rm -rf build tmp lib'
-        options:
-          stdout: true
-          stderr: true
-          failOnError: true
-
       test:
         command: 'node node_modules/jasmine-tagged/bin/jasmine-tagged --captureExceptions --coffee spec/'
         options:
@@ -72,4 +65,6 @@ module.exports = (grunt) ->
   grunt.registerTask 'lint', ['coffeelint', 'cpplint']
   grunt.registerTask 'test', ['default', 'shell:test']
   grunt.registerTask 'prepublish', ['clean', 'coffee', 'lint']
-  grunt.registerTask 'clean', ['shell:clean']
+  grunt.registerTask 'clean', ->
+    rm = require('rimraf').sync
+    rm 'lib'

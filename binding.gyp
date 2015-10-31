@@ -32,23 +32,30 @@
       ],
       'include_dirs': [
         '<!(node -e \"require(\'nan\')\")',
-        'tmp/ffmpeg-lib/include',
+        'dist/ffmpeg-2.6/include',
         'src/addons'
       ],
       'link_settings': {
         'libraries': [
-          '-lavcodec',
-          '-lavdevice',
-          '-lavfilter',
-          '-lavformat',
-          '-lavresample',
-          '-lavutil',
-          '-lpostproc',
-          '-lswscale',
-          '-lswresample'
+          '../dist/ffmpeg-2.6/lib/libavcodec.a',
+          '../dist/ffmpeg-2.6/lib/libavdevice.a',
+          '../dist/ffmpeg-2.6/lib/libavfilter.a',
+          '../dist/ffmpeg-2.6/lib/libavformat.a',
+          '../dist/ffmpeg-2.6/lib/libavutil.a',
+          '../dist/ffmpeg-2.6/lib/libswscale.a',
+          '../dist/ffmpeg-2.6/lib/libswresample.a',
+          #'-lavcodec',
+          #'-lavdevice',
+          #'-lavfilter',
+          #'-lavformat',
+          #'-lavresample',
+          #'-lavutil',
+          #'-lpostproc',
+          #'-lswscale',
+          #'-lswresample'
         ],
         'library_dirs': [
-          '../tmp/ffmpeg-lib/lib'
+          '../dist/ffmpeg-2.6/lib'
         ]
       },
       'conditions': [

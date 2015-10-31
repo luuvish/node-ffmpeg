@@ -1,5 +1,4 @@
 build/
+dist/
 examples/
-lib/
 node_modules/
-tmp/

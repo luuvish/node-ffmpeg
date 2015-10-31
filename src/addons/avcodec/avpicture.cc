@@ -1,3 +1,4 @@
+#include "ffmpeg.h"
 #include "avcodec/avpicture.h"
 #include "avutil/avframe.h"
 
@@ -146,13 +147,11 @@ NAN_METHOD(AVPicture::Fill) {
 
   bool hasUint8Array = false;
   void* data = nullptr;
+  int size;
 
   if (args[0]->IsObject()) {
-    Local<Object> arg0 = args[0]->ToObject();
-    hasUint8Array = arg0->HasIndexedPropertiesInExternalArrayData();
-    data = arg0->GetIndexedPropertiesExternalArrayData();
-    ExternalArrayType type = arg0->GetIndexedPropertiesExternalArrayDataType();
-    if (!hasUint8Array || type != kExternalUint8Array)
+    hasUint8Array = GetUint8Array(args[0]->ToObject(), data, size);
+    if (!hasUint8Array)
       return NanThrowTypeError("fill: ptr Uint8Array required");
   }
 
@@ -199,12 +198,9 @@ NAN_METHOD(AVPicture::Layout) {
   if (!args[3]->IsObject())
     return NanThrowTypeError("layout: dest Uint8Array required");
 
-  Local<Object> arg3 = args[3]->ToObject();
-  bool hasUint8Array = arg3->HasIndexedPropertiesInExternalArrayData();
-  void* data = arg3->GetIndexedPropertiesExternalArrayData();
-  ExternalArrayType type = arg3->GetIndexedPropertiesExternalArrayDataType();
-  int size = arg3->GetIndexedPropertiesExternalArrayDataLength();
-  if (!hasUint8Array || type != kExternalUint8Array)
+  void* data;
+  int size;
+  if (!GetUint8Array(args[3]->ToObject(), data, size))
     return NanThrowTypeError("layout: dest Uint8Array required");
 
   AVPicture* obj = Unwrap<AVPicture>(args.This());
@@ -356,7 +352,6 @@ NAN_GETTER(AVPicture::GetData) {
   ::AVPicture* wrap = obj->This();
 
   int total = avpicture_get_size(obj->pix_fmt_, obj->width_, obj->height_);
-  ExternalArrayType type = kExternalUint8Array;
   int size[AV_NUM_DATA_POINTERS] = {0, };
 
   for (uint32_t i = 0; i < AV_NUM_DATA_POINTERS; i++) {
@@ -372,11 +367,10 @@ NAN_GETTER(AVPicture::GetData) {
 
   Local<Array> rets = NanNew<Array>(AV_NUM_DATA_POINTERS);
   for (uint32_t i = 0; i < AV_NUM_DATA_POINTERS; i++) {
-    Local<Object> ret = NanNew<Object>();
-    uint8_t* data = wrap->data[i];
-    if (data)
-      ret->SetIndexedPropertiesToExternalArrayData(data, type, size[i]);
-    rets->Set(i, ret);
+    if (wrap->data[i])
+      rets->Set(i, NewUint8Array(wrap->data[i], size[i]));
+    else
+      rets->Set(i, NanNull());
   }
 
   NanReturnValue(rets);

@@ -1,3 +1,4 @@
+#include "ffmpeg.h"
 #include "avcodec/avpacket.h"
 
 using namespace v8;
@@ -146,12 +147,9 @@ NAN_METHOD(AVPacket::NewSideData) {
   int size = args[0]->Int32Value();
   uint8_t* data = av_packet_new_side_data(wrap, type, size);
 
-  if (data != nullptr && size > 0) {
-    Local<Object> ret = NanNew<Object>();
-    ExternalArrayType type = kExternalUint8Array;
-    ret->SetIndexedPropertiesToExternalArrayData(data, type, size);
-    NanReturnValue(ret);
-  } else
+  if (data != nullptr && size > 0)
+    NanReturnValue(NewUint8Array(data, size));
+  else
     NanReturnNull();
 }
 
@@ -170,12 +168,9 @@ NAN_METHOD(AVPacket::GetSideData) {
   int size;
   uint8_t* data = av_packet_get_side_data(wrap, type, &size);
 
-  if (data != nullptr && size > 0) {
-    Local<Object> ret = NanNew<Object>();
-    ExternalArrayType type = kExternalUint8Array;
-    ret->SetIndexedPropertiesToExternalArrayData(data, type, size);
-    NanReturnValue(ret);
-  } else
+  if (data != nullptr && size > 0)
+    NanReturnValue(NewUint8Array(data, size));
+  else
     NanReturnNull();
 }
 
@@ -282,10 +277,7 @@ NAN_GETTER(AVPacket::GetData) {
   if (wrap == nullptr)
     NanReturnUndefined();
 
-  ExternalArrayType type = kExternalUint8Array;
-  Local<Object> ret = NanNew<Object>();
-  ret->SetIndexedPropertiesToExternalArrayData(wrap->data, type, wrap->size);
-  NanReturnValue(ret);
+  NanReturnValue(NewUint8Array(wrap->data, wrap->size));
 }
 
 NAN_GETTER(AVPacket::GetSize) {

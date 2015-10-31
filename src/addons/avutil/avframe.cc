@@ -1,3 +1,8 @@
+extern "C" {
+#include "libavcodec/avcodec.h"
+}
+
+#include "ffmpeg.h"
 #include "avutil/avframe.h"
 
 using namespace v8;
@@ -20,6 +25,7 @@ void AVFrame::Init(Handle<Object> exports) {
   NODE_SET_PROTOTYPE_METHOD(tpl, "getBuffer", GetBuffer);
   NODE_SET_PROTOTYPE_METHOD(tpl, "copy", Copy);
   NODE_SET_PROTOTYPE_METHOD(tpl, "copyProps", CopyProps);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "fillAudioFrame", FillAudioFrame);
 
   Local<ObjectTemplate> inst = tpl->InstanceTemplate();
 
@@ -201,6 +207,39 @@ NAN_METHOD(AVFrame::CopyProps) {
   NanReturnValue(NanNew<Int32>(ret));
 }
 
+NAN_METHOD(AVFrame::FillAudioFrame) {
+  NanScope();
+
+  if (!args[0]->IsNumber())
+    return NanThrowTypeError("fillAudioFrame: nb_channels integer required");
+  if (!args[1]->IsNumber())
+    return NanThrowTypeError("fillAudioFrame: AVSampleFormat enum required");
+  if (!args[2]->IsObject())
+    return NanThrowTypeError("fillAudioFrame: buf Uint8Array required");
+  if (!args[3]->IsNumber())
+    return NanThrowTypeError("fillAudioFrame: align integer required");
+
+  void* data;
+  int size;
+  if (!GetUint8Array(args[2]->ToObject(), data, size))
+    return NanThrowTypeError("fillAudioFrame: buf Uint8Array required (2)");
+
+  ::AVFrame* wrap = Unwrap<AVFrame>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  int nb_channels = args[0]->Int32Value();
+  enum ::AVSampleFormat sample_fmt =
+    static_cast<enum ::AVSampleFormat>(args[1]->Int32Value());
+  const uint8_t* buf = reinterpret_cast<const uint8_t*>(data);
+  int buf_size = size;
+  int align = args[3]->Int32Value();
+
+  int ret = avcodec_fill_audio_frame(wrap,
+    nb_channels, sample_fmt, buf, buf_size, align);
+  NanReturnValue(NanNew<Int32>(ret));
+}
+
 NAN_GETTER(AVFrame::GetIsWritable) {
   NanScope();
 
@@ -236,14 +275,10 @@ NAN_GETTER(AVFrame::GetData) {
 
   Local<Array> rets = NanNew<Array>(AV_NUM_DATA_POINTERS);
   for (uint32_t i = 0; i < AV_NUM_DATA_POINTERS; i++) {
-    Local<Object> ret = NanNew<Object>();
-    if (wrap->buf[i]) {
-      void* data = wrap->buf[i]->data;
-      ExternalArrayType type = kExternalUint8Array;
-      int size = wrap->buf[i]->size;
-      ret->SetIndexedPropertiesToExternalArrayData(data, type, size);
-    }
-    rets->Set(i, ret);
+    if (wrap->buf[i])
+      rets->Set(i, NewUint8Array(wrap->buf[i]->data, wrap->buf[i]->size));
+    else
+      rets->Set(i, NanNull());
   }
   NanReturnValue(rets);
 }

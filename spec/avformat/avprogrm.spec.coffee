@@ -1,54 +1,72 @@
-ffmpeg = require '../../lib/ffmpeg'
+ffmpeg = require '../../dist/lib/ffmpeg'
+avformat = ffmpeg.avformat
+avcodec = ffmpeg.avcodec
+avutil = ffmpeg.avutil
+
+AVFormatContext = avformat.AVFormatContext
+
+AVDiscard = avcodec.AVDiscard
+
 
 describe 'AVProgram', ->
-  avformat = ffmpeg.avformat
-  avutil = ffmpeg.avutil
-  AVDiscard = ffmpeg.avcodec.AVDiscard
 
-  it 'output AVProgram', ->
-    ctx = new avformat.AVFormatContext
-    ctx.openOutput 'mp4', 'output.mp4'
+  describe 'create AVProgram', ->
+    [ctx, program] = [null, null]
 
-    program = ctx.newProgram 3
+    beforeEach ->
+      ctx = new AVFormatContext
+      ctx.openOutput 'mp4', 'output.mp4'
+      program = ctx.newProgram 3
 
-    expect(ctx.programs.length).toBe 1
+    afterEach ->
+      ctx.closeOutput()
+      [ctx, program] = [null, null]
 
-    expect(program.id).toBe 3
-    expect(program.flags).toBe 0
-    expect(program.discard).toBe AVDiscard.AVDISCARD_NONE
-    expect(program.stream_indexes).toEqual []
-    expect(program.metadata).toEqual {}
-    expect(program.program_num).toBe 0
-    expect(program.pmt_pid).toBe 0
-    expect(program.pcr_pid).toBe 0
-    expect(program.start_time).toBe avutil.AV_NOPTS_VALUE
-    expect(program.end_time).toBe avutil.AV_NOPTS_VALUE
-    expect(program.pts_wrap_reference).toBe avutil.AV_NOPTS_VALUE
-    expect(program.pts_wrap_behavior).toBe 0
+    it 'one program created', ->
+      expect(ctx.programs.length).toBe 1
 
-    ctx.closeOutput()
-    ctx = null
+  describe 'test property getter/setter', ->
+    [ctx, program] = [null, null]
 
-  it 'AVProgram getter/setter test', ->
-    ctx = new avformat.AVFormatContext
-    ctx.openOutput 'mp4', 'output.mp4'
+    beforeEach ->
+      ctx = new AVFormatContext
+      ctx.openOutput 'mp4', 'output.mp4'
+      program = ctx.newProgram 5
 
-    program = ctx.newProgram 5
+    afterEach ->
+      ctx.closeOutput()
+      [ctx, program] = [null, null]
 
-    program.flags = 9
-    expect(program.flags).toBe 9
+    it 'test default property', ->
+      expect(program.id).toBe 5
+      expect(program.flags).toBe 0
+      expect(program.discard).toBe AVDiscard.AVDISCARD_NONE
+      expect(program.stream_indexes).toEqual []
+      expect(program.metadata).toEqual {}
+      expect(program.program_num).toBe 0
+      expect(program.pmt_pid).toBe 0
+      expect(program.pcr_pid).toBe 0
+      expect(program.start_time).toBe avutil.AV_NOPTS_VALUE
+      expect(program.end_time).toBe avutil.AV_NOPTS_VALUE
+      expect(program.pts_wrap_reference).toBe avutil.AV_NOPTS_VALUE
+      expect(program.pts_wrap_behavior).toBe 0
 
-    program.discard = AVDiscard.AVDISCARD_ALL
-    expect(program.discard).toBe AVDiscard.AVDISCARD_ALL
+    it '.flags', ->
+      program.flags = 9
+      expect(program.flags).toBe 9
 
-    program.program_num = 7
-    expect(program.program_num).toBe 7
+    it '.discard', ->
+      program.discard = AVDiscard.AVDISCARD_ALL
+      expect(program.discard).toBe AVDiscard.AVDISCARD_ALL
 
-    program.pmt_pid = 100
-    expect(program.pmt_pid).toBe 100
+    it '.program_num', ->
+      program.program_num = 7
+      expect(program.program_num).toBe 7
 
-    program.pcr_pid = 200
-    expect(program.pcr_pid).toBe 200
+    it '.pmt_pid', ->
+      program.pmt_pid = 100
+      expect(program.pmt_pid).toBe 100
 
-    ctx.closeOutput()
-    ctx = null
+    it '.pcr_pid', ->
+      program.pcr_pid = 200
+      expect(program.pcr_pid).toBe 200

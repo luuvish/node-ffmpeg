@@ -303,14 +303,13 @@ NAN_METHOD(AVCodecContext::FreeContext) {
 NAN_METHOD(AVCodecContext::GetContextDefault3) {
   NanScope();
 
-  if (!AVCodec::HasInstance(args[0]))
-    return NanThrowTypeError("getDefault: AVCodec instance required");
-
   ::AVCodecContext* wrap = Unwrap<AVCodecContext>(args.This())->This();
   if (wrap == nullptr)
     NanReturnUndefined();
 
-  ::AVCodec* codec = Unwrap<AVCodec>(args[0]->ToObject())->This();
+  ::AVCodec* codec = nullptr;
+  if (AVCodec::HasInstance(args[0]))
+    codec = Unwrap<AVCodec>(args[0]->ToObject())->This();
 
   int ret = avcodec_get_context_defaults3(wrap, codec);
   NanReturnValue(NanNew<Int32>(ret));
@@ -326,9 +325,9 @@ NAN_METHOD(AVCodecContext::CopyContext) {
   if (wrap == nullptr)
     NanReturnUndefined();
 
-  ::AVCodecContext* ctx = Unwrap<AVCodecContext>(args[0]->ToObject())->This();
+  ::AVCodecContext* src = Unwrap<AVCodecContext>(args[0]->ToObject())->This();
 
-  int ret = avcodec_copy_context(wrap, ctx);
+  int ret = avcodec_copy_context(wrap, src);
   NanReturnValue(NanNew<Int32>(ret));
 }
 
@@ -343,23 +342,8 @@ NAN_METHOD(AVCodecContext::Open2) {
   ::AVDictionary* options = nullptr;
   int argc = 0;
 
-  if (!args[0]->IsUndefined()) {
-    if (AVCodec::HasInstance(args[0])) {
-      codec = Unwrap<AVCodec>(args[0]->ToObject())->This();
-      argc++;
-    } else if (args[0]->IsNumber()) {
-      enum ::AVCodecID codec_id =
-        static_cast<enum ::AVCodecID>(args[0]->Uint32Value());
-      codec = avcodec_find_decoder(codec_id);
-      argc++;
-    } else if (args[0]->IsString()) {
-      String::Utf8Value codec_name(args[0]);
-      codec = avcodec_find_decoder_by_name(*codec_name);
-      argc++;
-    }
-  }
-  if (argc == 0)
-    codec = avcodec_find_decoder(wrap->codec_id);
+  if (AVCodec::HasInstance(args[argc]))
+    codec = Unwrap<AVCodec>(args[argc++]->ToObject())->This();
 
   if (!args[argc]->IsUndefined() && args[argc]->IsObject()) {
     Local<Object> opts = args[argc]->ToObject();
@@ -375,13 +359,6 @@ NAN_METHOD(AVCodecContext::Open2) {
     }
     argc++;
   }
-
-  if (argc != args.Length()) {
-    av_dict_free(&options);
-    return NanThrowTypeError("open: invalid arguments");
-  }
-
-  wrap->codec_id = codec->id;
 
   int ret = avcodec_open2(wrap, codec, &options);
 
@@ -409,7 +386,19 @@ NAN_METHOD(AVCodecContext::Close) {
 NAN_METHOD(AVCodecContext::DefaultGetBuffer2) {
   NanScope();
 
-  NanReturnUndefined();
+  if (!avutil::AVFrame::HasInstance(args[0]))
+    return NanThrowTypeError("getDefaultBuffer: AVFrame instance required");
+  if (!args[1]->IsNumber())
+    return NanThrowTypeError("getDefaultBuffer: flags integer required");
+
+  ::AVCodecContext* wrap = Unwrap<AVCodecContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  ::AVFrame* frame = Unwrap<avutil::AVFrame>(args[0]->ToObject())->This();
+  int flags = args[1]->Int32Value();
+  int ret = avcodec_default_get_buffer2(wrap, frame, flags);
+  NanReturnValue(NanNew<Int32>(ret));
 }
 
 NAN_METHOD(AVCodecContext::DecodeAudio4) {
@@ -529,17 +518,78 @@ NAN_METHOD(AVCodecContext::DecodeSubtitle2) {
 
 NAN_METHOD(AVCodecContext::EncodeAudio2) {
   NanScope();
-  NanReturnUndefined();
+
+  if (!AVPacket::HasInstance(args[0]))
+    return NanThrowTypeError("encodeAudio: AVPacket instance required");
+  if (!avutil::AVFrame::HasInstance(args[1]))
+    return NanThrowTypeError("encodeAudio: AVFrame instance required");
+
+  ::AVCodecContext* wrap = Unwrap<AVCodecContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  ::AVPacket* avpkt = Unwrap<AVPacket>(args[0]->ToObject())->This();
+  const ::AVFrame* frame = Unwrap<avutil::AVFrame>(args[1]->ToObject())->This();
+  int got_packet_ptr;
+
+  int ret = avcodec_encode_audio2(wrap, avpkt, frame, &got_packet_ptr);
+  Local<Array> rets = NanNew<Array>(2);
+  rets->Set(0, NanNew<Int32>(ret));
+  rets->Set(1, NanNew<Boolean>(got_packet_ptr));
+  NanReturnValue(rets);
 }
 
 NAN_METHOD(AVCodecContext::EncodeVideo2) {
   NanScope();
-  NanReturnUndefined();
+
+  if (!AVPacket::HasInstance(args[0]))
+    return NanThrowTypeError("encodeVideo: AVPacket instance required");
+  if (!avutil::AVFrame::HasInstance(args[1]))
+    return NanThrowTypeError("encodeVideo: AVFrame instance required");
+
+  ::AVCodecContext* wrap = Unwrap<AVCodecContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  ::AVPacket* avpkt = Unwrap<AVPacket>(args[0]->ToObject())->This();
+  const ::AVFrame* frame = Unwrap<avutil::AVFrame>(args[1]->ToObject())->This();
+  int got_packet_ptr;
+
+  int ret = avcodec_encode_video2(wrap, avpkt, frame, &got_packet_ptr);
+  Local<Array> rets = NanNew<Array>(2);
+  rets->Set(0, NanNew<Int32>(ret));
+  rets->Set(1, NanNew<Boolean>(got_packet_ptr));
+  NanReturnValue(rets);
 }
 
 NAN_METHOD(AVCodecContext::EncodeSubtitle) {
   NanScope();
-  NanReturnUndefined();
+
+  if (!args[0]->IsObject())
+    NanThrowTypeError("encodeSubtitle: Uint8Array required");
+
+  Local<Object> arr = args[0]->ToObject();
+  if (!arr->HasIndexedPropertiesInExternalArrayData())
+    NanThrowTypeError("encodeSubtitle: Uint8Array required");
+
+  ExternalArrayType type = arr->GetIndexedPropertiesExternalArrayDataType();
+  if (type != kExternalUint8Array)
+    NanThrowTypeError("encodeSubtitle: Uint8Array required");
+
+  if (!AVSubtitle::HasInstance(args[1]))
+    return NanThrowTypeError("encodeSubtitle: AVSubtitle instance required");
+
+  ::AVCodecContext* wrap = Unwrap<AVCodecContext>(args.This())->This();
+  if (wrap == nullptr)
+    NanReturnUndefined();
+
+  void* data = arr->GetIndexedPropertiesExternalArrayData();
+  uint8_t* buf = reinterpret_cast<uint8_t*>(data);
+  int buf_size = arr->GetIndexedPropertiesExternalArrayDataLength();
+  const ::AVSubtitle* sub = Unwrap<AVSubtitle>(args[1]->ToObject())->This();
+
+  int ret = avcodec_encode_subtitle(wrap, buf, buf_size, sub);
+  NanReturnValue(NanNew<Int32>(ret));
 }
 
 NAN_METHOD(AVCodecContext::FlushBuffers) {

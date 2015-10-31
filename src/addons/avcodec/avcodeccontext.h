@@ -98,7 +98,6 @@ class AVCodecContext : public node::ObjectWrap {
   static NAN_METHOD(EncodeAudio2);
   static NAN_METHOD(EncodeVideo2);
   static NAN_METHOD(EncodeSubtitle);
-  static NAN_METHOD(FillAudioFrame);
   static NAN_METHOD(FlushBuffers);
   static NAN_METHOD(GetAudioFrameDuration);
   static NAN_GETTER(GetIsOpen);
@@ -230,7 +229,7 @@ class AVCodecContext : public node::ObjectWrap {
   static NAN_SETTER(SetSeekPreroll);
   static NAN_GETTER(GetChromaIntraMatrix);
   static NAN_SETTER(SetChromaIntraMatrix);
-  //std::list<NanAsyncWorker*> _async_queue;
+  // std::list<NanAsyncWorker*> _async_queue;
 };
 
 }  // namespace avcodec

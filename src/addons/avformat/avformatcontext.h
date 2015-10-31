@@ -11,24 +11,6 @@ extern "C" {
 namespace ffmpeg {
 namespace avformat {
 
-/*
-class AVReadFrameWorker : public NanAsyncWorker {
- public:
-  explicit AVReadFrameWorker(std::list<NanAsyncWorker*> *q,
-                             ::AVFormatContext *ctx, ::AVPacket *pkt,
-                             NanCallback *callback);
-  virtual ~AVReadFrameWorker();
-  void Execute();
-  void HandleOKCallback();
-
- private:
-  std::list<NanAsyncWorker*> *queue;
-  ::AVFormatContext *context;
-  ::AVPacket *packet;
-  int result;
-};
-*/
-
 class AVFormatContext : public node::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> exports);
@@ -145,7 +127,6 @@ class AVFormatContext : public node::ObjectWrap {
   static NAN_GETTER(GetDumpSeparator);
   static NAN_GETTER(GetDataCodecId);
   static NAN_SETTER(SetDataCodecId);
-  //std::list<NanAsyncWorker*> _async_queue;
 };
 
 }  // namespace avformat

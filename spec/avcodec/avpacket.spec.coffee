@@ -1,122 +1,168 @@
-ffmpeg = require '../../lib/ffmpeg'
+ffmpeg = require '../../dist/lib/ffmpeg'
+avformat = ffmpeg.avformat
+avcodec = ffmpeg.avcodec
+avutil = ffmpeg.avutil
+
+AVFormatContext = avformat.AVFormatContext
+AVPacket = avcodec.AVPacket
+
 
 describe 'AVPacket', ->
-  avformat = ffmpeg.avformat
-  avcodec = ffmpeg.avcodec
-  avutil = ffmpeg.avutil
 
-  ctx = new avformat.AVFormatContext
-  ctx.openInput './examples/ticket-a_aac.mkv'
+  describe 'decoding', ->
+    ctx = null
 
-  it 'create AVPacket', ->
-    packet = new avcodec.AVPacket
+    beforeEach ->
+      ctx = new AVFormatContext
+      ctx.openInput './examples/ticket-a_aac.mkv'
 
-    expect(packet.pts).toBe avutil.AV_NOPTS_VALUE
-    expect(packet.dts).toBe avutil.AV_NOPTS_VALUE
-    expect(packet.size).toBe 0
-    expect(packet.stream_index).toBe 0
-    expect(packet.flags).toBe 0
-    expect(packet.duration).toBe 0
-    expect(packet.pos).toBe -1
-    expect(packet.convergence_duration).toBe 0
+    afterEach ->
+      ctx.closeInput()
+      ctx = null
 
-  it 'read AVPacket', ->
-    packet = new avcodec.AVPacket
-    ctx.readFrame packet
+    it 'decoding 1st packet', ->
+      for i in [0...1]
+        packet = new AVPacket
+        ctx.readFrame packet
 
-    expect(packet.pts).toBe 0
-    expect(packet.dts).toBe avutil.AV_NOPTS_VALUE
-    expect(packet.data[0]).toBe 0
-    expect(packet.data[1]).toBe 0
-    expect(packet.data[2]).toBe 2
-    expect(packet.data[3]).toBe 35
-    expect(packet.data[4]).toBe 6
-    expect(packet.data[634]).toBe 16
-    expect(packet.data[635]).toBe 16
-    expect(packet.size).toBe 636
-    expect(packet.stream_index).toBe 0
-    expect(packet.flags).toBe 1
-    expect(packet.duration).toBe 0
-    expect(packet.pos).toBe 2061676
-    expect(packet.convergence_duration).toBe 0
+      expect(packet.pts).toBe 0
+      expect(packet.dts).toBe avutil.AV_NOPTS_VALUE
+      expect(packet.data[0]).toBe 0
+      expect(packet.data[1]).toBe 0
+      expect(packet.data[2]).toBe 2
+      expect(packet.data[3]).toBe 35
+      expect(packet.data[4]).toBe 6
+      expect(packet.data[634]).toBe 16
+      expect(packet.data[635]).toBe 16
+      expect(packet.size).toBe 636
+      expect(packet.stream_index).toBe 0
+      expect(packet.flags).toBe 1
+      expect(packet.duration).toBe 0
+      expect(packet.pos).toBe 2061676
+      expect(packet.convergence_duration).toBe 0
 
-    packet = new avcodec.AVPacket
-    ctx.readFrame packet
+    it 'decoding 2nd packet', ->
+      for i in [0...2]
+        packet = new AVPacket
+        ctx.readFrame packet
 
-    expect(packet.pts).toBe 0
-    expect(packet.dts).toBe 0
-    expect(packet.data[0]).toBe 1
-    expect(packet.data[1]).toBe 64
-    expect(packet.data[2]).toBe 32
-    expect(packet.data[3]).toBe 6
-    expect(packet.data[4]).toBe 189
-    expect(packet.data[675]).toBe 0
-    expect(packet.data[676]).toBe 63
-    expect(packet.size).toBe 677
-    expect(packet.stream_index).toBe 1
-    expect(packet.flags).toBe 1
-    expect(packet.duration).toBe 42
-    expect(packet.pos).toBe 2062322
-    expect(packet.convergence_duration).toBe 0
+      expect(packet.pts).toBe 0
+      expect(packet.dts).toBe 0
+      expect(packet.data[0]).toBe 1
+      expect(packet.data[1]).toBe 64
+      expect(packet.data[2]).toBe 32
+      expect(packet.data[3]).toBe 6
+      expect(packet.data[4]).toBe 189
+      expect(packet.data[675]).toBe 0
+      expect(packet.data[676]).toBe 63
+      expect(packet.size).toBe 677
+      expect(packet.stream_index).toBe 1
+      expect(packet.flags).toBe 1
+      expect(packet.duration).toBe 42
+      expect(packet.pos).toBe 2062322
+      expect(packet.convergence_duration).toBe 0
 
-    packet = new avcodec.AVPacket
-    ctx.readFrame packet
+    it 'decoding 3rd packet', ->
+      for i in [0...3]
+        packet = new AVPacket
+        ctx.readFrame packet
 
-    expect(packet.pts).toBe 42
-    expect(packet.dts).toBe 42
-    expect(packet.data[0]).toBe 1
-    expect(packet.data[1]).toBe 64
-    expect(packet.data[2]).toBe 32
-    expect(packet.data[3]).toBe 6
-    expect(packet.data[4]).toBe 141
-    expect(packet.data[673]).toBe 0
-    expect(packet.data[674]).toBe 63
-    expect(packet.size).toBe 675
-    expect(packet.stream_index).toBe 1
-    expect(packet.flags).toBe 1
-    expect(packet.duration).toBe 43
-    expect(packet.pos).toBe 2062322
-    expect(packet.convergence_duration).toBe 0
+      expect(packet.pts).toBe 42
+      expect(packet.dts).toBe 42
+      expect(packet.data[0]).toBe 1
+      expect(packet.data[1]).toBe 64
+      expect(packet.data[2]).toBe 32
+      expect(packet.data[3]).toBe 6
+      expect(packet.data[4]).toBe 141
+      expect(packet.data[673]).toBe 0
+      expect(packet.data[674]).toBe 63
+      expect(packet.size).toBe 675
+      expect(packet.stream_index).toBe 1
+      expect(packet.flags).toBe 1
+      expect(packet.duration).toBe 43
+      expect(packet.pos).toBe 2062322
+      expect(packet.convergence_duration).toBe 0
 
-  it 'AVPacket.dup() test', ->
-    packet = new avcodec.AVPacket
-    packet.dup()
+  describe 'test method functions', ->
+    [packet0, packet1] = [null, null]
 
-  it 'AVPacket.copy() test', ->
-    packet = new avcodec.AVPacket
-    pkt2 = new avcodec.AVPacket
-    pkt2.copy packet
+    beforeEach ->
+      [packet0, packet1] = [new AVPacket, new AVPacket]
 
-  xit 'AVPacket.CopySideData() test', ->
-  xit 'AVPacket.NewSideData() test', ->
-  xit 'AVPacket.GetSideData() test', ->
-  xit 'AVPacket.MergeSideData() test', ->
-  xit 'AVPacket.SplitSideData() test', ->
+    afterEach ->
+      [packet0, packet1] = [null, null]
 
-  it 'AVPacket.RescaleTs() test', ->
-    packet = new avcodec.AVPacket
-    packet.rescaleTs {num: 1, den: 5}, {num: 10, den: 3}
+    it '.dup()', ->
+      packet0.dup()
 
-  it 'AVPacket getter/setter test', ->
-    packet = new avcodec.AVPacket
+    it '.copy()', ->
+      packet1.copy packet0
 
-    packet.pts = 777
-    expect(packet.pts).toBe 777
+    it '.copySideData()', ->
+      packet0.copySideData packet1
 
-    packet.dts = 49
-    expect(packet.dts).toBe 49
+    it '.newSideData()', ->
+      packet0.newSideData 1, 100
 
-    packet.stream_index = 3
-    expect(packet.stream_index).toBe 3
+    it '.getSideData()', ->
+      packet0.newSideData 1, 100
+      expect(packet0.getSideData 1).toEqual '0': 0
 
-    packet.flags = 41
-    expect(packet.flags).toBe 41
+    it '.mergeSideData()', ->
+      packet0.newSideData 1, 100
+      expect(packet0.mergeSideData()).toBe 1
 
-    packet.duration = 10000
-    expect(packet.duration).toBe 10000
+    it '.splitSideData()', ->
+      packet0.newSideData 1, 100
+      packet0.mergeSideData()
+      expect(packet0.splitSideData()).toBe 1
 
-    packet.pos = 200
-    expect(packet.pos).toBe 200
+    it '.rescaleTs()', ->
+      packet0.rescaleTs {num: 1, den: 5}, {num: 10, den: 3}
 
-    packet.convergence_duration = 50
-    expect(packet.convergence_duration).toBe 50
+  describe 'test property getter/setter', ->
+    packet = null
+
+    beforeEach ->
+      packet = new AVPacket
+
+    afterEach ->
+      packet = null
+
+    it 'test default property', ->
+      expect(packet.pts).toBe avutil.AV_NOPTS_VALUE
+      expect(packet.dts).toBe avutil.AV_NOPTS_VALUE
+      expect(packet.size).toBe 0
+      expect(packet.stream_index).toBe 0
+      expect(packet.flags).toBe 0
+      expect(packet.duration).toBe 0
+      expect(packet.pos).toBe -1
+      expect(packet.convergence_duration).toBe 0
+
+    it '.pts', ->
+      packet.pts = 777
+      expect(packet.pts).toBe 777
+
+    it '.dts', ->
+      packet.dts = 49
+      expect(packet.dts).toBe 49
+
+    it '.stream_index', ->
+      packet.stream_index = 3
+      expect(packet.stream_index).toBe 3
+
+    it '.flags', ->
+      packet.flags = 41
+      expect(packet.flags).toBe 41
+
+    it '.duration', ->
+      packet.duration = 10000
+      expect(packet.duration).toBe 10000
+
+    it '.pos', ->
+      packet.pos = 200
+      expect(packet.pos).toBe 200
+
+    it '.convergence_duration', ->
+      packet.convergence_duration = 50
+      expect(packet.convergence_duration).toBe 50
